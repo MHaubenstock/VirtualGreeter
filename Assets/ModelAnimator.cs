@@ -30,28 +30,36 @@ public class ModelAnimator : MonoBehaviour
 	IEnumerator animateModel(int index)
 	{
 		ModelAnimation anim = animations[index];
-		float playbackSpeed = 0.5F;
 		float frameProgress = 0.0F;
 
 		//set to origin frame
 		for(int o = 0; o < anim.frames[0].theTransforms.Length; ++o)
 		{
-			anim.frames[0].theTransforms[o].position = anim.frames[0].positionStates[o];
-			anim.frames[0].theTransforms[o].eulerAngles = anim.frames[0].rotationStates[o];
+			anim.frames[0].theTransforms[o].localPosition = anim.frames[0].positionStates[o];
+			anim.frames[0].theTransforms[o].localEulerAngles = anim.frames[0].rotationStates[o];
 		}
 
 		//Now animate
 		//for each frame....
 		for(int f = 1; f < anim.frames.Length; ++f)
 		{
+			Debug.Log("Playing frame " + f);
 			//while not finished progressing through the frame
 			while(frameProgress < 100)
 			{
-				//anim.frames
-				//Vector3.Lerp()
+				//for each transform in frame
+				for(int t = 0; t < anim.frames[f].theTransforms.Length; ++t)
+				{
+					anim.frames[f].theTransforms[t].localPosition = Vector3.Lerp(anim.frames[f - 1].positionStates[t], anim.frames[f].positionStates[t], frameProgress / 100.0F);
+					anim.frames[f].theTransforms[t].localEulerAngles = Vector3.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
+					
+					frameProgress += anim.playbackSpeed;
+				}
 
 				yield return false;
 			}
+
+			frameProgress = 0;
 		}
 
 		yield return true;
@@ -63,6 +71,7 @@ public class ModelAnimation
 {
 	public Transform [] modelTransforms;
 	public AnimationFrame [] frames;
+	public float playbackSpeed;
 
 	public ModelAnimation(){}
 }

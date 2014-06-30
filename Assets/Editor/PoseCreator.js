@@ -14,11 +14,6 @@ class PoseCreator extends EditorWindow
 		window.position = Rect(0, 0, 250, 80);
 		window.Show();
 	}
-	
-	function OnEnable()
-	{
-		
-	}
 
 	function OnGUI()
 	{
@@ -103,7 +98,7 @@ class PoseCreator extends EditorWindow
 			//compare this frame to frame a-1, keep only transforms and vector 3's that change
 			for(var f : int = 0; f < workingAnimation.frames[a].theTransforms.length; ++f)
 			{
-				if((workingAnimation.frames[a].positionStates[f] != workingAnimation.frames[a - 1].positionStates[f]) || (workingAnimation.frames[a].rotationStates[f] != workingAnimation.frames[a - 1].rotationStates[f]))
+				if(usedTransforms[f] || (workingAnimation.frames[a].positionStates[f] != workingAnimation.frames[a - 1].positionStates[f]) || (workingAnimation.frames[a].rotationStates[f] != workingAnimation.frames[a - 1].rotationStates[f]))
 				{
 					usedTransforms[f] = true;
 
@@ -115,9 +110,6 @@ class PoseCreator extends EditorWindow
 			}
 
 			//Finish processing frame
-			//tempAnimation.frames[a].theTransforms = new Transform[transformArr.length];
-			//tempAnimation.frames[a].positionStates = new Vector3[positionArr.length];
-			//tempAnimation.frames[a].rotationStates = new Vector3[rotationArr.length];
 			tempAnimation.frames[a] = new AnimationFrame(transformArr.length, "Frame " + a);
 			tempAnimation.frames[a].theTransforms = transformArr.ToBuiltin(Transform);
 			tempAnimation.frames[a].positionStates = positionArr.ToBuiltin(Vector3);
@@ -177,8 +169,10 @@ public class ModelAnimationRaw
 		for(var t : int = 0; t < modelTransforms.length; ++t)
 		{
 			tempFrame.theTransforms[t] = modelTransforms[t];
-			tempFrame.positionStates[t] = modelTransforms[t].position;
-			tempFrame.rotationStates[t] = modelTransforms[t].eulerAngles;
+			//tempFrame.positionStates[t] = modelTransforms[t].position;
+			//tempFrame.rotationStates[t] = modelTransforms[t].eulerAngles;
+			tempFrame.positionStates[t] = modelTransforms[t].localPosition;
+			tempFrame.rotationStates[t] = modelTransforms[t].localEulerAngles;
 		}
 
 		//Add frame to array of frames
