@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class ModelAnimator : MonoBehaviour
 {
 	public GameObject model;
-	public ModelAnimation [] animations;
+	public List<ModelAnimation> animations;
 
 	// Use this for initialization
 	void Start ()
@@ -20,9 +21,12 @@ public class ModelAnimator : MonoBehaviour
 
 	void OnGUI()
 	{
-		if(GUI.Button(new Rect(0, 0, 50, 30), "Blink"))
+		for(int a = 0; a < animations.Count; ++a)
 		{
-			StartCoroutine(animateModel(0));
+			if(GUI.Button(new Rect(0, 31 * a, animations[a].name.Length * 8, 30), animations[a].name))
+			{
+				StartCoroutine(animateModel(a));
+			}
 		}
 	}
 
@@ -69,9 +73,10 @@ public class ModelAnimator : MonoBehaviour
 [System.Serializable]
 public class ModelAnimation
 {
+	public string name;
 	public Transform [] modelTransforms;
 	public AnimationFrame [] frames;
-	public float playbackSpeed;
+	public float playbackSpeed = 1;
 
 	public ModelAnimation(){}
 }

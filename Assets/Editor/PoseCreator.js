@@ -4,6 +4,7 @@ class PoseCreator extends EditorWindow
 {
 	var modelAnimator : ModelAnimator;
 	var workingAnimation : ModelAnimationRaw;
+	var animationName : String;
 
 	// Add menu named "My Window" to the Window menu
 	@MenuItem ("Window/Pose Creator")
@@ -26,14 +27,21 @@ class PoseCreator extends EditorWindow
 
 		if(!workingAnimation)
 		{
+			EditorGUILayout.PrefixLabel("Animation Name:");
+			animationName = GUILayout.TextField(animationName);
+
 			if(GUILayout.Button("Begin New Animation"))
 			{
 				//Creates new animation and sets begin state
-				workingAnimation = new ModelAnimationRaw(modelAnimator.model.GetComponentsInChildren.<Transform>());
+				workingAnimation = new ModelAnimationRaw(animationName, modelAnimator.model.GetComponentsInChildren.<Transform>());
 			}
 		}
 		else
 		{
+			EditorGUILayout.LabelField(animationName);
+
+			addSpace(1);
+
 			if(GUILayout.Button("Save State"))
 			{
 				getState();
@@ -44,15 +52,13 @@ class PoseCreator extends EditorWindow
 			{
 				processFinishedAnimation();
 			}
-		}
 
-		//Information
-		//Show frames
-		if(workingAnimation)
+			//Information
 			for(var fr : AnimationFrameRaw in workingAnimation.frames.ToBuiltin(AnimationFrameRaw) as AnimationFrameRaw[])
 			{
 				EditorGUILayout.LabelField(fr.frameName);
 			}
+		}
 
 		addSpace(3);
 
@@ -84,12 +90,24 @@ class PoseCreator extends EditorWindow
 		var rotationArr : Array = new Array();
 
 		var tempAnimation : ModelAnimation = new ModelAnimation();
+		tempAnimation.name = animationName;
 		tempAnimation.frames = new AnimationFrame[workingAnimation.frames.length];
 
 		Debug.Log("Start Processing");
 		//keep list of bools for tranforms that change throughout then use it at the end
 		//to create a starting state as the first frame
 		var usedTransforms : boolean[] = new boolean[workingAnimation.modelTransforms.length];
+
+		//Get used transforms
+		for(var ua : int = 1; ua < workingAnimation.frames.length; ++ua)
+		{
+			//compare this frame to frame a-1, keep only transforms and vector 3's that change
+			for(var uf : int = 0; uf < workingAnimation.frames[ua].theTransforms.length; ++uf)
+			{
+				if((workingAnimation.frames[ua].positionStates[uf] != workingAnimation.frames[ua - 1].positionStates[uf]) || (workingAnimation.frames[ua].rotationStates[uf] != workingAnimation.frames[ua - 1].rotationStates[uf]))
+					usedTransforms[uf] = true;
+			}
+		}
 
 		//for each frame in the working animation
 		for(var a : int = 1; a < workingAnimation.frames.length; ++a)
@@ -98,10 +116,8 @@ class PoseCreator extends EditorWindow
 			//compare this frame to frame a-1, keep only transforms and vector 3's that change
 			for(var f : int = 0; f < workingAnimation.frames[a].theTransforms.length; ++f)
 			{
-				if(usedTransforms[f] || (workingAnimation.frames[a].positionStates[f] != workingAnimation.frames[a - 1].positionStates[f]) || (workingAnimation.frames[a].rotationStates[f] != workingAnimation.frames[a - 1].rotationStates[f]))
+				if(usedTransforms[f])
 				{
-					usedTransforms[f] = true;
-
 					//add to array of used transforms for this frame
 					transformArr.Add(workingAnimation.frames[a].theTransforms[f]);
 					positionArr.Add(workingAnimation.frames[a].positionStates[f]);
@@ -136,7 +152,8 @@ class PoseCreator extends EditorWindow
 		tempAnimation.frames[0].positionStates = positionArr.ToBuiltin(Vector3);
 		tempAnimation.frames[0].rotationStates = rotationArr.ToBuiltin(Vector3);
 
-		modelAnimator.animations[0] = tempAnimation;
+		//modelAnimator.animations[0] = tempAnimation;
+		modelAnimator.animations.Add(tempAnimation);
 		Debug.Log("Done Processing");
 	}
 
@@ -148,29 +165,28 @@ class PoseCreator extends EditorWindow
 
 public class ModelAnimationRaw
 {
+	var animationName : String;
 	var modelTransforms : Transform[];
 	var frames : Array = new Array();
 	var frameNumber : int = 1;
 
 	function ModelAnimationRaw(){}
 
-	function ModelAnimationRaw(points : Transform[])
+	function ModelAnimationRaw(name : String, points : Transform[])
 	{
-		Debug.Log(points.length);
+		animationName = name;
 		modelTransforms = points;
 		getState();
 	}
 
 	function getState()
 	{
-		var tempFrame = new AnimationFrameRaw(modelTransforms.length, frameNumber.ToString());
+		var tempFrame = new AnimationFrameRaw(modelTransforms.length, animationName + "_Frame_" + frameNumber.ToString());
 
 		//Iterate through each transform in the model and gather its position and rotation
 		for(var t : int = 0; t < modelTransforms.length; ++t)
 		{
 			tempFrame.theTransforms[t] = modelTransforms[t];
-			//tempFrame.positionStates[t] = modelTransforms[t].position;
-			//tempFrame.rotationStates[t] = modelTransforms[t].eulerAngles;
 			tempFrame.positionStates[t] = modelTransforms[t].localPosition;
 			tempFrame.rotationStates[t] = modelTransforms[t].localEulerAngles;
 		}
@@ -190,7 +206,7 @@ public class AnimationFrameRaw
 
 	function AnimationFrameRaw(numOfTransforms : int, name : String)
 	{
-		frameName = "Frame: " + name;
+		frameName = name;
 		theTransforms = new Transform[numOfTransforms];
 		positionStates = new Vector3[numOfTransforms];
 		rotationStates = new Vector3[numOfTransforms];
