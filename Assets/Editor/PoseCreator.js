@@ -4,7 +4,7 @@ class PoseCreator extends EditorWindow
 {
 	var modelAnimator : ModelAnimator;
 	var workingAnimation : ModelAnimationRaw;
-	var animationName : String;
+	var animationName : String = "";
 
 	// Add menu named "My Window" to the Window menu
 	@MenuItem ("Window/Pose Creator")
@@ -129,7 +129,8 @@ class PoseCreator extends EditorWindow
 			tempAnimation.frames[a] = new AnimationFrame(transformArr.length, "Frame " + a);
 			tempAnimation.frames[a].theTransforms = transformArr.ToBuiltin(Transform);
 			tempAnimation.frames[a].positionStates = positionArr.ToBuiltin(Vector3);
-			tempAnimation.frames[a].rotationStates = rotationArr.ToBuiltin(Vector3);
+			//tempAnimation.frames[a].rotationStates = rotationArr.ToBuiltin(Vector3);
+			tempAnimation.frames[a].rotationStates = rotationArr.ToBuiltin(Quaternion);
 
 			transformArr.Clear();
 			positionArr.Clear();
@@ -150,7 +151,8 @@ class PoseCreator extends EditorWindow
 		tempAnimation.frames[0] = new AnimationFrame(transformArr.length, "Origin Frame");
 		tempAnimation.frames[0].theTransforms = transformArr.ToBuiltin(Transform);
 		tempAnimation.frames[0].positionStates = positionArr.ToBuiltin(Vector3);
-		tempAnimation.frames[0].rotationStates = rotationArr.ToBuiltin(Vector3);
+		//tempAnimation.frames[0].rotationStates = rotationArr.ToBuiltin(Vector3);
+		tempAnimation.frames[0].rotationStates = rotationArr.ToBuiltin(Quaternion);
 
 		//modelAnimator.animations[0] = tempAnimation;
 		modelAnimator.animations.Add(tempAnimation);
@@ -188,7 +190,8 @@ public class ModelAnimationRaw
 		{
 			tempFrame.theTransforms[t] = modelTransforms[t];
 			tempFrame.positionStates[t] = modelTransforms[t].localPosition;
-			tempFrame.rotationStates[t] = modelTransforms[t].localEulerAngles;
+			//tempFrame.rotationStates[t] = modelTransforms[t].localEulerAngles;
+			tempFrame.rotationStates[t] = modelTransforms[t].localRotation;
 		}
 
 		//Add frame to array of frames
@@ -202,13 +205,15 @@ public class AnimationFrameRaw
 	var frameName : String;
 	var theTransforms : Transform[];
 	var positionStates : Vector3[];
-	var rotationStates : Vector3[];
+	//var rotationStates : Vector3[];
+	var rotationStates : Quaternion[];
 
 	function AnimationFrameRaw(numOfTransforms : int, name : String)
 	{
 		frameName = name;
 		theTransforms = new Transform[numOfTransforms];
 		positionStates = new Vector3[numOfTransforms];
-		rotationStates = new Vector3[numOfTransforms];
+		//rotationStates = new Vector3[numOfTransforms];
+		rotationStates = new Quaternion[numOfTransforms];
 	}
 }

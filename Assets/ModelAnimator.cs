@@ -40,7 +40,8 @@ public class ModelAnimator : MonoBehaviour
 		for(int o = 0; o < anim.frames[0].theTransforms.Length; ++o)
 		{
 			anim.frames[0].theTransforms[o].localPosition = anim.frames[0].positionStates[o];
-			anim.frames[0].theTransforms[o].localEulerAngles = anim.frames[0].rotationStates[o];
+			//anim.frames[0].theTransforms[o].localEulerAngles = anim.frames[0].rotationStates[o];
+			anim.frames[0].theTransforms[o].localRotation = anim.frames[0].rotationStates[o];
 		}
 
 		//Now animate
@@ -55,7 +56,8 @@ public class ModelAnimator : MonoBehaviour
 				for(int t = 0; t < anim.frames[f].theTransforms.Length; ++t)
 				{
 					anim.frames[f].theTransforms[t].localPosition = Vector3.Lerp(anim.frames[f - 1].positionStates[t], anim.frames[f].positionStates[t], frameProgress / 100.0F);
-					anim.frames[f].theTransforms[t].localEulerAngles = Vector3.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
+					//anim.frames[f].theTransforms[t].localEulerAngles = Vector3.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
+					anim.frames[f].theTransforms[t].localRotation = Quaternion.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
 					
 					frameProgress += anim.playbackSpeed;
 				}
@@ -87,13 +89,15 @@ public class AnimationFrame
 	public string frameName;
 	public Transform [] theTransforms;
 	public Vector3 [] positionStates;
-	public Vector3 [] rotationStates;
+	//public Vector3 [] rotationStates;
+	public Quaternion [] rotationStates;
 
 	public AnimationFrame(int numOfTransforms, string name)
 	{
 		frameName = "Frame: " + name;
 		theTransforms = new Transform[numOfTransforms];
 		positionStates = new Vector3[numOfTransforms];
-		rotationStates = new Vector3[numOfTransforms];
+		//rotationStates = new Vector3[numOfTransforms];
+		rotationStates = new Quaternion[numOfTransforms];
 	}
 }
