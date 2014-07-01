@@ -16,7 +16,14 @@ public class ModelAnimator : MonoBehaviour
 	// Update is called once per frame
 	void Update ()
 	{
-	
+		if(Input.GetKeyDown(KeyCode.Alpha1))
+			StartCoroutine(animateModel(2));
+
+		if(Input.GetKeyDown(KeyCode.Alpha2))
+			StartCoroutine(animateModel(3));
+
+		if(Input.GetKeyDown(KeyCode.Alpha3))
+			StartCoroutine(animateModel(4));
 	}
 
 	void OnGUI()
@@ -59,7 +66,10 @@ public class ModelAnimator : MonoBehaviour
 					//anim.frames[f].theTransforms[t].localEulerAngles = Vector3.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
 					anim.frames[f].theTransforms[t].localRotation = Quaternion.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
 					
-					frameProgress += anim.playbackSpeed;
+					if(anim.frames[f].playbackSpeed == 0)
+						frameProgress += anim.playbackSpeed;
+					else
+						frameProgress += anim.frames[f].playbackSpeed;
 				}
 
 				yield return false;
@@ -91,6 +101,7 @@ public class AnimationFrame
 	public Vector3 [] positionStates;
 	//public Vector3 [] rotationStates;
 	public Quaternion [] rotationStates;
+	public float playbackSpeed = 0;
 
 	public AnimationFrame(int numOfTransforms, string name)
 	{
