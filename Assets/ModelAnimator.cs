@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 public class ModelAnimator : MonoBehaviour
 {
@@ -87,6 +88,9 @@ public class ModelAnimator : MonoBehaviour
 	{
 		string serializedAnimations = "";
 
+		//serialize number of animations
+		serializedAnimations += animations.Count + "\n";
+
 		//for each animation
 		foreach(ModelAnimation anim in animations)
 		{
@@ -110,6 +114,46 @@ public class ModelAnimator : MonoBehaviour
 	{
 		StreamReader inFile = new StreamReader("Assets/Resources/AlexisAnimations.txt");
 
+		//read number of animations
+		int numOfAnimations = int.Parse(inFile.ReadLine());
+		List<ModelAnimation> animations = new List<ModelAnimation>();
+
+		//split animations into separate strings
+		for(int a = 0; a < numOfAnimations; ++a)
+        {
+        	string animationString = "";
+        	string fileLine;
+        	bool readingFrame = false;
+
+        	//read all animation data into string then send to ModelAnimation to return the animation
+        	//read until you encounter an empty line
+        	while((fileLine = inFile.ReadLine()) != "")
+        	{
+        		if(fileLine == "beginframe")
+        		{
+        			readingFrame = true;
+        			continue;
+        		}
+        		else if(fileLine == "endframe")
+        		{
+        			readingFrame = false;
+        			//ended frame, skip to next line
+        			animationString += "\n";
+        			continue;
+        		}
+
+        		animationString += fileLine + (readingFrame ? "\r" : "\n");
+        	}
+
+        	//send to ModelAnimation to return an animation
+        	animations.Add(ModelAnimation.deserializeAnimation(animationString, model));
+
+        	animationString = "";
+        }
+
+        //Finished creating animations from file, now assign it to our list of animations
+        this.animations = animations;
+
 		return true;
 	}
 }
@@ -129,8 +173,14 @@ public class ModelAnimation
 	{
 		string serializedAnimation = "";
 
+		//insert beginning of animation indicator
+		//serializedAnimation += "beginanimation\n";
+
 		//serialize name
 		serializedAnimation += name + "\n";
+
+		//serialize playback speed
+		serializedAnimation += playbackSpeed + "\n";
 
 		//Number of transforms
 		serializedAnimation += modelTransforms.Length + "\n";
@@ -147,13 +197,48 @@ public class ModelAnimation
 		//serialize frames
 		foreach(AnimationFrame anim in frames)
 		{
-			serializedAnimation += anim.serializeFrame() + "\n";
+			serializedAnimation += anim.serializeFrame();
 		}
 
-		//serialize playback speed
-		serializedAnimation += playbackSpeed + "\n";
+		//insert ending animation indicator
+		//serializedAnimation += "endanimation\n";
 
 		return serializedAnimation;
+	}
+
+	public static ModelAnimation deserializeAnimation(string serAnim, GameObject animModel)
+	{
+		ModelAnimation anim = new ModelAnimation();
+		Queue<string> animData = new Queue<string>(serAnim.Split('\n'));
+
+		//Store animation name
+		anim.name = animData.Dequeue();
+
+		//Store animation playback speed
+		anim.playbackSpeed = float.Parse(animData.Dequeue());
+
+		//Create array for transform of length of number of transforms
+		Transform [] transforms = new Transform[int.Parse(animData.Dequeue())];
+
+		//Load model transforms into transform array
+		for(int t = 0; t < transforms.Length; ++t)
+		{
+			transforms[t] = animModel.transform.Find(animData.Dequeue());
+		}
+
+		//set animation transforms
+		anim.modelTransforms = transforms;
+
+		//Next dequeue gets number of animations
+		anim.frames = new AnimationFrame[int.Parse(animData.Dequeue())];
+
+		//Get animation frames
+		for(int a = 0; a < anim.frames.Length; ++a)
+		{
+			anim.frames[a] = AnimationFrame.deserializeFrame(animData.Dequeue());
+		}
+
+		return anim;
 	}
 
 	//Recursively builds the transforms hierarchy
@@ -161,9 +246,10 @@ public class ModelAnimation
 	{
 		//base case
 		if(tr == tr.root)
-			return tr.name;
+			//return tr.name;
+			return "";
 
-		return getHierarchy(tr.parent) + "/" + tr.name;
+		return getHierarchy(tr.parent) + (tr.parent == tr.root ? "" : "/") + tr.name;
 	}
 }
 
@@ -174,6 +260,8 @@ public class AnimationFrame
 	public Vector3 [] positionStates;
 	public Quaternion [] rotationStates;
 	public float playbackSpeed = 0;
+
+	public AnimationFrame(){}
 
 	public AnimationFrame(int numOfTransforms, string name)
 	{
@@ -186,6 +274,9 @@ public class AnimationFrame
 	public string serializeFrame()
 	{
 		string serializedFrame = "";
+
+		//insert beginning frame indicator
+		serializedFrame += "beginframe\n";
 
 		//serialize frame name
 		serializedFrame += frameName + "\n";
@@ -209,8 +300,60 @@ public class AnimationFrame
 		}
 
 		//serialize playback speed
-		serializedFrame += playbackSpeed;
+		serializedFrame += playbackSpeed + "\n";
+
+		//insert ending frame indicator
+		serializedFrame += "endframe\n";
 
 		return serializedFrame;
 	}
+
+	public static AnimationFrame deserializeFrame(string serFrame)
+	{
+		AnimationFrame frame = new AnimationFrame();
+		//Has an extra empty line
+		string [] data = serFrame.Split('\r');
+		//This constructs a queue with the empty line removed
+		Queue<string> frameData = new Queue<string>(data.Take(data.Length - 1));
+
+		//Store frame name
+		frame.frameName = frameData.Dequeue();
+
+		//Create array of positions (Vector3s)
+		frame.positionStates = new Vector3[int.Parse(frameData.Dequeue())];
+
+		//Store position states
+		for(int p = 0; p < frame.positionStates.Length; ++p)
+		{
+			string [] pos = frameData.Dequeue().Split(' ');
+
+			frame.positionStates[p].x = float.Parse(pos[0]);
+			frame.positionStates[p].y = float.Parse(pos[1]);
+			frame.positionStates[p].z = float.Parse(pos[2]);
+		}
+
+		//Create array of rotations (Quaternions)
+		frame.rotationStates = new Quaternion[int.Parse(frameData.Dequeue())];
+
+		//Store rotation states
+		for(int r = 0; r < frame.rotationStates.Length; ++r)
+		{
+			string [] rots = frameData.Dequeue().Split(' ');
+
+			frame.rotationStates[r].x = float.Parse(rots[0]);
+			frame.rotationStates[r].y = float.Parse(rots[1]);
+			frame.rotationStates[r].z = float.Parse(rots[2]);
+			frame.rotationStates[r].w = float.Parse(rots[3]);
+		}
+
+		//Store animation playback speed
+		frame.playbackSpeed = float.Parse(frameData.Dequeue());
+
+		return frame;
+	}
 }
+
+
+
+
+

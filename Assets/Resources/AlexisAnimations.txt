@@ -1,34 +1,43 @@
+2
 Speak1
+12
 1
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/Jaw
+Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/Jaw
 3
+beginframe
 Frame: Origin Frame
 1
 1.734723E-20 -0.004738029 0.05227578
 1
 -0.01904354 0 0 0.9998187
 0
+endframe
+beginframe
 Frame: Frame 1
 1
 1.734723E-20 -0.004738029 0.05227586
 1
 0.03113312 0 0 0.9995152
 0
+endframe
+beginframe
 Frame: Frame 2
 1
 1.734723E-20 -0.004738029 0.05227578
 1
 -0.01904354 0 0 0.9998187
 0
-12
+endframe
 
 Demonic Head Spin
+1
 4
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/Jaw
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/LeftEye
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/RightEye
+Hips/Spine/Spine1/Spine2/Neck/Neck1/Head
+Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/Jaw
+Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/LeftEye
+Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/RightEye
 7
+beginframe
 Frame: Origin Frame
 4
 -1.058791E-24 0.04026611 0.008585205
@@ -41,6 +50,8 @@ Frame: Origin Frame
 0 0 0 1
 0 0 0 1
 0
+endframe
+beginframe
 Frame: Frame 1
 4
 -1.058791E-24 0.04026611 0.008585205
@@ -53,6 +64,8 @@ Frame: Frame 1
 -0.3053555 0 0 0.9522385
 -0.3053555 0 0 0.9522385
 0
+endframe
+beginframe
 Frame: Frame 2
 4
 -1.058791E-24 0.04026617 0.008585206
@@ -65,6 +78,8 @@ Frame: Frame 2
 -0.3053555 0 0 0.9522385
 -0.3053555 0 0 0.9522385
 0
+endframe
+beginframe
 Frame: Frame 3
 4
 -1.058791E-24 0.04026617 0.008585206
@@ -77,6 +92,8 @@ Frame: Frame 3
 -0.3053555 0 0 0.9522385
 -0.3053555 0 0 0.9522385
 0
+endframe
+beginframe
 Frame: Frame 4
 4
 -1.058791E-24 0.04026617 0.008585206
@@ -89,6 +106,8 @@ Frame: Frame 4
 -0.3053555 0 0 0.9522385
 -0.3053555 0 0 0.9522385
 0
+endframe
+beginframe
 Frame: Frame 5
 4
 -1.058791E-24 0.04026611 0.008585205
@@ -101,6 +120,8 @@ Frame: Frame 5
 -0.3053555 0 0 0.9522385
 -0.3053555 0 0 0.9522385
 0
+endframe
+beginframe
 Frame: Frame 6
 4
 -1.058791E-24 0.04026611 0.008585205
@@ -113,57 +134,5 @@ Frame: Frame 6
 0 0 0 1
 0 0 0 1
 0
-1
-
-Wink
-5
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/LeftEye
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/LeftEyelidLower
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/LeftEyelidUpper
-Alexis/Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/RightEye
-3
-Frame: Origin Frame
-5
--1.058791E-24 0.04026611 0.008585205
--0.035717 0.07657112 0.1158223
--0.035717 0.07657103 0.1158223
--0.035717 0.07657103 0.1158223
-0.035717 0.07657112 0.1158223
-5
-0 0 0 1
-0 0 0 1
--0.08280388 0 0 0.9965659
-0.02885009 0 0 0.9995838
-0 0 0 1
-0
-Frame: Frame 1
-5
--1.058791E-24 0.04026617 0.008585206
--0.035717 0.07657115 0.1158223
--0.03571706 0.07657091 0.1158223
--0.03571708 0.07657091 0.1158223
-0.035717 0.07657099 0.1158223
-5
-0.07037314 0.08575156 -0.006092821 0.9938095
--0.008679094 -0.05193894 0.006541242 0.9985912
--0.2446231 -0.001304409 -0.02216065 0.9693642
-0.138448 0.003239556 0.01881805 0.9901856
--0.008698107 -0.04327404 0.005558908 0.99901
-0
-Frame: Frame 2
-5
--1.058791E-24 0.04026611 0.008585205
--0.035717 0.07657112 0.1158223
--0.035717 0.07657103 0.1158223
--0.035717 0.07657103 0.1158223
-0.035717 0.07657112 0.1158223
-5
-0 0 0 1
-0 0 0 1
--0.08280388 0 0 0.9965659
-0.02885009 0 0 0.9995838
-0 0 0 1
-0
-1.5
+endframe
 

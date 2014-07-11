@@ -76,6 +76,9 @@ class PoseCreator extends EditorWindow
 			var serializedAnimations : String = modelAnimator.serializeAnimations();
 			modelAnimator.saveAnimations(serializedAnimations);			
 		}
+
+		if(GUILayout.Button("Load All Animations"))
+			modelAnimator.readAnimationsFromFile();
 	}
 
 	function addSpace(spaces : int)
