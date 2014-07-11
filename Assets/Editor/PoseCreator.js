@@ -23,6 +23,10 @@ class PoseCreator extends EditorWindow
 		EditorGUILayout.PrefixLabel("Model Poser Script");
 		modelAnimator = EditorGUILayout.ObjectField(modelAnimator, ModelAnimator, true);
 
+		//If there is no Model Animator attached, then don't show the rest
+		if(!modelAnimator)
+			return;
+
 		addSpace(2);
 
 		if(!workingAnimation)
@@ -65,6 +69,13 @@ class PoseCreator extends EditorWindow
 		//Reset
 		if(GUILayout.Button("Reset"))
 			reset();
+
+		if(GUILayout.Button("Save All Animations"))
+		{
+			//get serialized animations and save them to a file
+			var serializedAnimations : String = modelAnimator.serializeAnimations();
+			modelAnimator.saveAnimations(serializedAnimations);			
+		}
 	}
 
 	function addSpace(spaces : int)
@@ -127,9 +138,8 @@ class PoseCreator extends EditorWindow
 
 			//Finish processing frame
 			tempAnimation.frames[a] = new AnimationFrame(transformArr.length, "Frame " + a);
-			tempAnimation.frames[a].theTransforms = transformArr.ToBuiltin(Transform);
+			tempAnimation.modelTransforms = transformArr.ToBuiltin(Transform);
 			tempAnimation.frames[a].positionStates = positionArr.ToBuiltin(Vector3);
-			//tempAnimation.frames[a].rotationStates = rotationArr.ToBuiltin(Vector3);
 			tempAnimation.frames[a].rotationStates = rotationArr.ToBuiltin(Quaternion);
 
 			transformArr.Clear();
@@ -149,12 +159,10 @@ class PoseCreator extends EditorWindow
 		}
 
 		tempAnimation.frames[0] = new AnimationFrame(transformArr.length, "Origin Frame");
-		tempAnimation.frames[0].theTransforms = transformArr.ToBuiltin(Transform);
+		tempAnimation.modelTransforms = transformArr.ToBuiltin(Transform);
 		tempAnimation.frames[0].positionStates = positionArr.ToBuiltin(Vector3);
-		//tempAnimation.frames[0].rotationStates = rotationArr.ToBuiltin(Vector3);
 		tempAnimation.frames[0].rotationStates = rotationArr.ToBuiltin(Quaternion);
 
-		//modelAnimator.animations[0] = tempAnimation;
 		modelAnimator.animations.Add(tempAnimation);
 		Debug.Log("Done Processing");
 	}

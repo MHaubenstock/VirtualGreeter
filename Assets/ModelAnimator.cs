@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 public class ModelAnimator : MonoBehaviour
 {
@@ -10,20 +11,22 @@ public class ModelAnimator : MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
-
+		//Debug.Log(serializeAnimations());
 	}
 	
 	// Update is called once per frame
 	void Update ()
 	{
 		if(Input.GetKeyDown(KeyCode.Alpha1))
-			StartCoroutine(animateModel(2));
+			StartCoroutine(animateModel(0));
 
+		/*
 		if(Input.GetKeyDown(KeyCode.Alpha2))
-			StartCoroutine(animateModel(3));
+			StartCoroutine(animateModel(1));
 
 		if(Input.GetKeyDown(KeyCode.Alpha3))
-			StartCoroutine(animateModel(4));
+			StartCoroutine(animateModel(2));
+		*/
 	}
 
 	void OnGUI()
@@ -44,11 +47,10 @@ public class ModelAnimator : MonoBehaviour
 		float frameProgress = 0.0F;
 
 		//set to origin frame
-		for(int o = 0; o < anim.frames[0].theTransforms.Length; ++o)
+		for(int o = 0; o < anim.modelTransforms.Length; ++o)
 		{
-			anim.frames[0].theTransforms[o].localPosition = anim.frames[0].positionStates[o];
-			//anim.frames[0].theTransforms[o].localEulerAngles = anim.frames[0].rotationStates[o];
-			anim.frames[0].theTransforms[o].localRotation = anim.frames[0].rotationStates[o];
+			anim.modelTransforms[o].localPosition = anim.frames[0].positionStates[o];
+			anim.modelTransforms[o].localRotation = anim.frames[0].rotationStates[o];
 		}
 
 		//Now animate
@@ -60,11 +62,10 @@ public class ModelAnimator : MonoBehaviour
 			while(frameProgress < 100)
 			{
 				//for each transform in frame
-				for(int t = 0; t < anim.frames[f].theTransforms.Length; ++t)
+				for(int t = 0; t < anim.modelTransforms.Length; ++t)
 				{
-					anim.frames[f].theTransforms[t].localPosition = Vector3.Lerp(anim.frames[f - 1].positionStates[t], anim.frames[f].positionStates[t], frameProgress / 100.0F);
-					//anim.frames[f].theTransforms[t].localEulerAngles = Vector3.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
-					anim.frames[f].theTransforms[t].localRotation = Quaternion.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
+					anim.modelTransforms[t].localPosition = Vector3.Lerp(anim.frames[f - 1].positionStates[t], anim.frames[f].positionStates[t], frameProgress / 100.0F);
+					anim.modelTransforms[t].localRotation = Quaternion.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
 					
 					if(anim.frames[f].playbackSpeed == 0)
 						frameProgress += anim.playbackSpeed;
@@ -80,6 +81,37 @@ public class ModelAnimator : MonoBehaviour
 
 		yield return true;
 	}
+
+	//For saving the animation
+	public string serializeAnimations()
+	{
+		string serializedAnimations = "";
+
+		//for each animation
+		foreach(ModelAnimation anim in animations)
+		{
+			serializedAnimations += anim.serializeAnimation() + "\n";
+		}
+
+		return serializedAnimations;
+	}
+
+	public bool saveAnimations(string serializedAnimations)
+	{
+		using(StreamWriter outfile = new StreamWriter("Assets/Resources/AlexisAnimations.txt"))
+        {
+           	outfile.Write(serializedAnimations);
+        }
+
+        return true;
+	}
+
+	public bool readAnimationsFromFile()
+	{
+		StreamReader inFile = new StreamReader("Assets/Resources/AlexisAnimations.txt");
+
+		return true;
+	}
 }
 
 [System.Serializable]
@@ -91,24 +123,94 @@ public class ModelAnimation
 	public float playbackSpeed = 1;
 
 	public ModelAnimation(){}
+
+	//For saving the animation
+	public string serializeAnimation()
+	{
+		string serializedAnimation = "";
+
+		//serialize name
+		serializedAnimation += name + "\n";
+
+		//Number of transforms
+		serializedAnimation += modelTransforms.Length + "\n";
+
+		//serialize transform hierarchies
+		foreach(Transform tr in modelTransforms)
+		{
+			serializedAnimation += getHierarchy(tr) + "\n";
+		}
+
+		//Number of frames
+		serializedAnimation += frames.Length + "\n";
+
+		//serialize frames
+		foreach(AnimationFrame anim in frames)
+		{
+			serializedAnimation += anim.serializeFrame() + "\n";
+		}
+
+		//serialize playback speed
+		serializedAnimation += playbackSpeed + "\n";
+
+		return serializedAnimation;
+	}
+
+	//Recursively builds the transforms hierarchy
+	string getHierarchy(Transform tr)
+	{
+		//base case
+		if(tr == tr.root)
+			return tr.name;
+
+		return getHierarchy(tr.parent) + "/" + tr.name;
+	}
 }
 
 [System.Serializable]
 public class AnimationFrame
 {
 	public string frameName;
-	public Transform [] theTransforms;
 	public Vector3 [] positionStates;
-	//public Vector3 [] rotationStates;
 	public Quaternion [] rotationStates;
 	public float playbackSpeed = 0;
 
 	public AnimationFrame(int numOfTransforms, string name)
 	{
 		frameName = "Frame: " + name;
-		theTransforms = new Transform[numOfTransforms];
 		positionStates = new Vector3[numOfTransforms];
-		//rotationStates = new Vector3[numOfTransforms];
 		rotationStates = new Quaternion[numOfTransforms];
+	}
+
+	//For saving the frame
+	public string serializeFrame()
+	{
+		string serializedFrame = "";
+
+		//serialize frame name
+		serializedFrame += frameName + "\n";
+
+		//Number of position states
+		serializedFrame += positionStates.Length + "\n";
+
+		//serialize position states
+		foreach(Vector3 pos in positionStates)
+		{
+			serializedFrame += pos.x + " " + pos.y + " " + pos.z + "\n";
+		}
+
+		//Number of rotation states
+		serializedFrame += rotationStates.Length + "\n";
+
+		//serialize rotation states
+		foreach(Quaternion rot in rotationStates)
+		{
+			serializedFrame += rot.x + " " + rot.y + " " + rot.z + " " + rot.w + "\n";
+		}
+
+		//serialize playback speed
+		serializedFrame += playbackSpeed;
+
+		return serializedFrame;
 	}
 }
