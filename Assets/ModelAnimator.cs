@@ -5,6 +5,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+//TODO: Not allowing me to play the override gestures, the custom idle animation is
+//trying to play over it, but it's not even playing the custom idle animation
+
+
 public class ModelAnimator : MonoBehaviour
 {
 	public GameObject model;
@@ -14,12 +18,14 @@ public class ModelAnimator : MonoBehaviour
 	private int numOfOverrideAnimsPlaying = 0;
 	private Animator builtinAnimator;
 	private AudioSource audioSource;
+	private bool [] animationInterrupt;
 
 	private bool dummyVar = false;
 
 	// Use this for initialization
 	void Start ()
 	{
+		animationInterrupt = new bool[animations.Count()];
 		builtinAnimator = model.GetComponent<Animator>();
 		audioSource = model.audio;
 		//Debug.Log(serializeAnimations());
@@ -31,14 +37,16 @@ public class ModelAnimator : MonoBehaviour
 		//Are animations playing that require builtin Animation Controller to stop?
 		if(numOfOverrideAnimsPlaying > 0)
 		{
-			builtinAnimator.enabled = false;
-			StartCoroutine(animateModel(4, val => dummyVar = val));
+			if(!animations[4].isPlaying)
+			{
+				builtinAnimator.enabled = false;
+				StartCoroutine(animateModel(4, val => dummyVar = val));
+			}
 		}
 		else
 			builtinAnimator.enabled = true;
 
 		if(Input.GetKeyDown(KeyCode.Alpha1))
-			//StartCoroutine(animateModel(0));
 			greetCustomer();
 		
 
@@ -78,6 +86,14 @@ public class ModelAnimator : MonoBehaviour
 		//Start waving animation
 		//When waving animation finishes, play gesturing left animation
 		StartCoroutine(stringTogetherAnimations(animationIndices, pauses));
+
+		interruptCustomIdle();
+	}
+
+	void interruptCustomIdle()
+	{
+		//if(animations[4].isPlaying)
+			animationInterrupt[4] = true;
 	}
 
 	//takes in an array of the indices of the animations
@@ -106,7 +122,13 @@ public class ModelAnimator : MonoBehaviour
 	//runs as a coroutine and animates the model
 	IEnumerator animateModel(int index, Action<bool> finished)
 	{
+		if(index == 3)
+			Debug.Log("THIS IS A TEST");
+		if(index == 4)
+			Debug.Log("DJDLKJLDKJLKD");
+
 		ModelAnimation anim = animations[index];
+		anim.isPlaying = true;
 		float frameProgress = 0.0F;
 
 		//If needed, shut off built in animator and remind system to keep it shut off until animation finishes
@@ -127,7 +149,7 @@ public class ModelAnimator : MonoBehaviour
 		//for each frame....
 		for(int f = 1; f < anim.frames.Length; ++f)
 		{
-			Debug.Log("Playing frame " + f);
+			//Debug.Log("Playing frame " + f);
 			//while not finished progressing through the frame
 			while(frameProgress < 100)
 			{
@@ -143,6 +165,20 @@ public class ModelAnimator : MonoBehaviour
 						frameProgress += anim.frames[f].playbackSpeed;
 				}
 
+				//If this animation has been interrupted, then exit
+				if(animationInterrupt[index])
+				{
+					if(anim.overrideAnimator && numOfOverrideAnimsPlaying > 0)
+						--numOfOverrideAnimsPlaying;
+
+					anim.isPlaying = false;
+
+					//Reset interrupt
+					animationInterrupt[index] = false;
+					
+					return true;
+				}
+
 				yield return false;
 			}
 
@@ -150,11 +186,12 @@ public class ModelAnimator : MonoBehaviour
 		}
 
 		//If this overrode the builtin animator, remove it's override reminder
-		if(anim.overrideAnimator)
+		if(anim.overrideAnimator && numOfOverrideAnimsPlaying > 0)
 			--numOfOverrideAnimsPlaying;
 
 		finished(true);
 
+		anim.isPlaying = false;
 		yield return true;
 	}
 
@@ -241,6 +278,7 @@ public class ModelAnimation
 	public AnimationFrame [] frames;
 	public float playbackSpeed = 1;
 	public bool overrideAnimator = false;
+	public bool isPlaying = false;
 
 	public ModelAnimation(){}
 
