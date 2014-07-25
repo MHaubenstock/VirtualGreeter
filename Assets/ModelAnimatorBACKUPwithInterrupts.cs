@@ -1,34 +1,55 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-public class ModelAnimator : MonoBehaviour
+//TODO: Not allowing me to play the override gestures, the custom idle animation is
+//trying to play over it, but it's not even playing the custom idle animation
+
+
+public class ModelAnimatorBACKUPwithInterrupts : MonoBehaviour
 {
+	/*
 	public GameObject model;
 	public List<ModelAnimation> animations;
+	public AudioClip [] audioClip;
+
+	private int numOfOverrideAnimsPlaying = 0;
+	private Animator builtinAnimator;
+	private AudioSource audioSource;
+	private bool [] animationInterrupt;
+
+	private bool dummyVar = false;
 
 	// Use this for initialization
 	void Start ()
 	{
+		animationInterrupt = new bool[animations.Count()];
+		builtinAnimator = model.GetComponent<Animator>();
+		audioSource = model.audio;
 		//Debug.Log(serializeAnimations());
-		//Debug.Log(model.meshCollider.mesh.GetTopology().points);
 	}
 	
 	// Update is called once per frame
 	void Update ()
 	{
+		//Are animations playing that require builtin Animation Controller to stop?
+		if(numOfOverrideAnimsPlaying > 0)
+		{
+			if(!animations[4].isPlaying)
+			{
+				builtinAnimator.enabled = false;
+				StartCoroutine(animateModel(4, val => dummyVar = val));
+			}
+		}
+		else
+			builtinAnimator.enabled = true;
+
 		if(Input.GetKeyDown(KeyCode.Alpha1))
-			StartCoroutine(animateModel(0));
-
-		/*
-		if(Input.GetKeyDown(KeyCode.Alpha2))
-			StartCoroutine(animateModel(1));
-
-		if(Input.GetKeyDown(KeyCode.Alpha3))
-			StartCoroutine(animateModel(2));
-		*/
+			greetCustomer();
+		
 	}
 
 	void OnGUI()
@@ -37,16 +58,73 @@ public class ModelAnimator : MonoBehaviour
 		{
 			if(GUI.Button(new Rect(0, 31 * a, animations[a].name.Length * 8, 30), animations[a].name))
 			{
-				StartCoroutine(animateModel(a));
+				StartCoroutine(animateModel(a, val => dummyVar = val));
 			}
 		}
 	}
 
+	//Tailored animation and audio managing methods
+	void greetCustomer()
+	{
+		int [] animationIndices = new int[2];
+		float [] pauses = new float[animationIndices.Length - 1];
+
+		animationIndices[0] = 2;
+		pauses[0] = 1.5F;
+		animationIndices[1] = 3;
+
+		//Start Greeting.AIFF
+		audioSource.Play();
+
+		//Start waving animation
+		//When waving animation finishes, play gesturing left animation
+		StartCoroutine(stringTogetherAnimations(animationIndices, pauses));
+
+		interruptCustomIdle();
+	}
+
+	void interruptCustomIdle()
+	{
+		//if(animations[4].isPlaying)
+			animationInterrupt[4] = true;
+	}
+
+	//takes in an array of the indices of the animations
+	//Strings animations together so one plays after the other finishes
+	IEnumerator stringTogetherAnimations(int [] animationIndices, float [] pauses)
+	{
+		bool animationFinished = false;
+
+		//calls animateModel on animations one by one as they finish
+		for(int a = 0; a < animationIndices.Length; ++a)
+		{
+			StartCoroutine(animateModel(animationIndices[a], fin => animationFinished = fin));
+
+			while(!animationFinished)
+			{
+				yield return false;
+			}
+
+			if(a < pauses.Length)
+				yield return new WaitForSeconds(pauses[a]);
+		}
+
+		yield return true;
+	}
+
 	//runs as a coroutine and animates the model
-	IEnumerator animateModel(int index)
+	IEnumerator animateModel(int index, Action<bool> finished)
 	{
 		ModelAnimation anim = animations[index];
+		anim.isPlaying = true;
 		float frameProgress = 0.0F;
+
+		//If needed, shut off built in animator and remind system to keep it shut off until animation finishes
+		if(anim.overrideAnimator)
+		{
+			builtinAnimator.enabled = false;
+			++numOfOverrideAnimsPlaying;
+		}
 
 		//set to origin frame
 		for(int o = 0; o < anim.modelTransforms.Length; ++o)
@@ -59,7 +137,7 @@ public class ModelAnimator : MonoBehaviour
 		//for each frame....
 		for(int f = 1; f < anim.frames.Length; ++f)
 		{
-			Debug.Log("Playing frame " + f);
+			//Debug.Log("Playing frame " + f);
 			//while not finished progressing through the frame
 			while(frameProgress < 100)
 			{
@@ -75,12 +153,33 @@ public class ModelAnimator : MonoBehaviour
 						frameProgress += anim.frames[f].playbackSpeed;
 				}
 
+				//If this animation has been interrupted, then exit
+				if(animationInterrupt[index])
+				{
+					if(anim.overrideAnimator && numOfOverrideAnimsPlaying > 0)
+						--numOfOverrideAnimsPlaying;
+
+					anim.isPlaying = false;
+
+					//Reset interrupt
+					animationInterrupt[index] = false;
+					
+					return true;
+				}
+
 				yield return false;
 			}
 
 			frameProgress = 0;
 		}
 
+		//If this overrode the builtin animator, remove it's override reminder
+		if(anim.overrideAnimator && numOfOverrideAnimsPlaying > 0)
+			--numOfOverrideAnimsPlaying;
+
+		finished(true);
+
+		anim.isPlaying = false;
 		yield return true;
 	}
 
@@ -157,8 +256,10 @@ public class ModelAnimator : MonoBehaviour
 
 		return true;
 	}
+	*/
 }
 
+/*
 [System.Serializable]
 public class ModelAnimation
 {
@@ -166,8 +267,10 @@ public class ModelAnimation
 	public Transform [] modelTransforms;
 	public AnimationFrame [] frames;
 	public float playbackSpeed = 1;
+	public bool overrideAnimator = false;
+	public bool isPlaying = false;
 
-	public ModelAnimation(){}
+	public ModelAnimationBACKUP(){}
 
 	//For saving the animation
 	public string serializeAnimation()
@@ -182,6 +285,9 @@ public class ModelAnimation
 
 		//serialize playback speed
 		serializedAnimation += playbackSpeed + "\n";
+
+		//serialize override animator
+		serializedAnimation += (overrideAnimator ? "1" : "0") + "\n";
 
 		//Number of transforms
 		serializedAnimation += modelTransforms.Length + "\n";
@@ -217,6 +323,9 @@ public class ModelAnimation
 
 		//Store animation playback speed
 		anim.playbackSpeed = float.Parse(animData.Dequeue());
+
+		//Store override animator
+		anim.overrideAnimator = int.Parse(animData.Dequeue()) == 1 ? true : false;
 
 		//Create array for transform of length of number of transforms
 		Transform [] transforms = new Transform[int.Parse(animData.Dequeue())];
@@ -262,9 +371,9 @@ public class AnimationFrame
 	public Quaternion [] rotationStates;
 	public float playbackSpeed = 0;
 
-	public AnimationFrame(){}
+	public AnimationFrameBACKUP(){}
 
-	public AnimationFrame(int numOfTransforms, string name)
+	public AnimationFrameBACKUP(int numOfTransforms, string name)
 	{
 		frameName = "Frame: " + name;
 		positionStates = new Vector3[numOfTransforms];
@@ -353,3 +462,9 @@ public class AnimationFrame
 		return frame;
 	}
 }
+
+
+
+
+
+*/
