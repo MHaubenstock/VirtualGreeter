@@ -1,34 +1,36 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
+//TODO: Add animation priorities
+//TODO: Stop the buitin animation when certain other animations are playing
 
 public class ModelAnimator : MonoBehaviour
 {
 	public GameObject model;
 	public List<ModelAnimation> animations;
 
+	private Animator builtinAnimator;
+	private AudioSource audioSource;
+
+	private bool dummyVar = false;
+
 	// Use this for initialization
 	void Start ()
 	{
-		//Debug.Log(serializeAnimations());
-		//Debug.Log(model.meshCollider.mesh.GetTopology().points);
+		builtinAnimator = model.GetComponent<Animator>();
+		audioSource = model.audio;
+		//Debug.Log(getTotalCyclesInAnimation(animations[5]));
 	}
 	
 	// Update is called once per frame
 	void Update ()
 	{
 		if(Input.GetKeyDown(KeyCode.Alpha1))
-			StartCoroutine(animateModel(0));
-
-		/*
-		if(Input.GetKeyDown(KeyCode.Alpha2))
-			StartCoroutine(animateModel(1));
-
-		if(Input.GetKeyDown(KeyCode.Alpha3))
-			StartCoroutine(animateModel(2));
-		*/
+			greetCustomer();
 	}
 
 	void OnGUI()
@@ -37,13 +39,56 @@ public class ModelAnimator : MonoBehaviour
 		{
 			if(GUI.Button(new Rect(0, 31 * a, animations[a].name.Length * 8, 30), animations[a].name))
 			{
-				StartCoroutine(animateModel(a));
+				StartCoroutine(animateModel(a, val => dummyVar = val));
 			}
 		}
 	}
 
+	//Tailored animation and audio managing methods
+	void greetCustomer()
+	{
+		int [] animationIndices = new int[2];
+		float [] pauses = new float[animationIndices.Length - 1];
+
+		animationIndices[0] = 2;
+		pauses[0] = 1.5F;
+		animationIndices[1] = 3;
+
+		//Start Greeting.AIFF
+		audioSource.Play();
+
+		//Start waving animation
+		//When waving animation finishes, play gesturing left animation
+		StartCoroutine(stringTogetherAnimations(animationIndices, pauses));
+
+		//interruptCustomIdle();
+	}
+
+	//takes in an array of the indices of the animations
+	//Strings animations together so one plays after the other finishes
+	IEnumerator stringTogetherAnimations(int [] animationIndices, float [] pauses)
+	{
+		bool animationFinished = false;
+
+		//calls animateModel on animations one by one as they finish
+		for(int a = 0; a < animationIndices.Length; ++a)
+		{
+			StartCoroutine(animateModel(animationIndices[a], fin => animationFinished = fin));
+
+			while(!animationFinished)
+			{
+				yield return false;
+			}
+
+			if(a < pauses.Length)
+				yield return new WaitForSeconds(pauses[a]);
+		}
+
+		yield return true;
+	}
+
 	//runs as a coroutine and animates the model
-	IEnumerator animateModel(int index)
+	IEnumerator animateModel(int index, Action<bool> finished)
 	{
 		ModelAnimation anim = animations[index];
 		float frameProgress = 0.0F;
@@ -81,7 +126,37 @@ public class ModelAnimator : MonoBehaviour
 			frameProgress = 0;
 		}
 
-		yield return true;
+		finished(true);
+		//yield return true;
+		return true;
+	}
+
+	public ModelAnimation mergeAnimations(ModelAnimation[] modelAnimations)
+	{
+		if(modelAnimations.Length == 1)
+			return modelAnimations[0];
+
+		ModelAnimation mergedAnimation = new ModelAnimation();
+
+		//Merge animations by priority
+
+		return mergedAnimation;
+	}
+
+	public int getTotalCyclesInAnimation(ModelAnimation animation)
+	{
+		int totalCycles = 0;
+
+		//Exclude the origin frame
+		for(int a = 1; a < animation.frames.Length; ++a)
+		{
+			if(animation.frames[a].playbackSpeed > 0)
+				totalCycles += (int)(100 / animation.frames[a].playbackSpeed);
+			else
+				totalCycles += (int)(100 / animation.playbackSpeed);
+		}
+
+		return totalCycles;
 	}
 
 	//For saving the animation
@@ -166,6 +241,7 @@ public class ModelAnimation
 	public Transform [] modelTransforms;
 	public AnimationFrame [] frames;
 	public float playbackSpeed = 1;
+	public int priority = 0;
 
 	public ModelAnimation(){}
 

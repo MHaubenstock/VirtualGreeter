@@ -1,7 +1,6 @@
 5
 Speak1
 12
-0
 1
 Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/Jaw
 3
@@ -32,7 +31,6 @@ endframe
 
 Demonic Head Spin
 1
-0
 4
 Hips/Spine/Spine1/Spine2/Neck/Neck1/Head
 Hips/Spine/Spine1/Spine2/Neck/Neck1/Head/Jaw
@@ -139,7 +137,6 @@ Frame: Frame 6
 endframe
 
 Left Arm Wave
-1
 1
 10
 Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm
@@ -338,7 +335,6 @@ endframe
 
 Gesture To Left
 1
-1
 11
 Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm
 Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm
@@ -466,8 +462,7 @@ Frame: Frame 3
 endframe
 
 Idle
-1
-0
+0.05
 51
 Hips/LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase
 Hips
