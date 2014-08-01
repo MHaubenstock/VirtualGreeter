@@ -24,6 +24,11 @@ public class ModelAnimator : MonoBehaviour
 		builtinAnimator = model.GetComponent<Animator>();
 		audioSource = model.audio;
 		//Debug.Log(getTotalCyclesInAnimation(animations[5]));
+
+		ModelAnimation[] modTest = {animations[1], animations[0], animations[2]};
+		//mergeAnimations(modTest);
+
+		equalizeAnimation(animations[0], 6);
 	}
 	
 	// Update is called once per frame
@@ -138,25 +143,76 @@ public class ModelAnimator : MonoBehaviour
 
 		ModelAnimation mergedAnimation = new ModelAnimation();
 
+		//sort animations by priority then by longest length
+		modelAnimations = modelAnimations.OrderBy(si => si.priority).ToArray();
+		//reverse so it's ordered by descending priority
+		Array.Reverse(modelAnimations);
+
+		List<ModelAnimation> intermedAnimList = new List<ModelAnimation>();
+		intermedAnimList.Add(modelAnimations[0]);
+		int thePriority = modelAnimations[0].priority;
+
+		//Now sort each priority level by total animation cycles
+		List<ModelAnimation> tempAnimList = new List<ModelAnimation>();
+		for(int a = 1; a < modelAnimations.Length; ++a)
+		{
+			if(modelAnimations[a].priority == thePriority)
+				intermedAnimList.Add(modelAnimations[a]);
+			else
+			{
+				tempAnimList.AddRange(intermedAnimList.OrderBy(si => si.getTotalCyclesInAnimation()).Reverse());
+				intermedAnimList.Clear();
+				intermedAnimList.Add(modelAnimations[a]);
+			}
+		}
+
+		tempAnimList.AddRange(intermedAnimList.OrderBy(si => si.getTotalCyclesInAnimation()).Reverse());
+		modelAnimations = tempAnimList.ToArray();
+
+		//Done sorting
 		//Merge animations by priority
+		//For each animation:
+			//equalize animation or equalize elsewhere
+			//For each frame:
+
+		//use animation length of animations with highest priority and then longest time
+
+		//make last frame a return to origin frame
 
 		return mergedAnimation;
 	}
 
-	public int getTotalCyclesInAnimation(ModelAnimation animation)
+	//equalize animations and add or remove frames so that each frame takes the same number of cycles
+	public ModelAnimation equalizeAnimation(ModelAnimation theAnimation, int cyclesPerFrame, int resolution = 1)
 	{
-		int totalCycles = 0;
+		ModelAnimation equalizedAnimation = new ModelAnimation();
+		List<AnimationFrame> newFrameList = new List<AnimationFrame>();
 
-		//Exclude the origin frame
-		for(int a = 1; a < animation.frames.Length; ++a)
+		//initialize animation stuff, name, transforms, playback speed, priority
+		equalizedAnimation.name = theAnimation.name;
+		equalizedAnimation.modelTransforms = theAnimation.modelTransforms;
+		equalizedAnimation.playbackSpeed = theAnimation.getAveragePlaybackSpeed();
+		equalizedAnimation.priority = theAnimation.priority;
+
+		int numberOfFrames = theAnimation.frames.Length * resolution;
+
+		//Add origin frame
+		AnimationFrame newFrame = new AnimationFrame(equalizedAnimation.modelTransforms.Length, "Origin Frame");
+		newFrame.positionStates = theAnimation.frames[0].positionStates;
+		newFrame.rotationStates = theAnimation.frames[0].rotationStates;
+		newFrameList.Add(newFrame);
+
+		for(int f = 1; f < numberOfFrames; ++f)
 		{
-			if(animation.frames[a].playbackSpeed > 0)
-				totalCycles += (int)(100 / animation.frames[a].playbackSpeed);
-			else
-				totalCycles += (int)(100 / animation.playbackSpeed);
+			newFrame = new AnimationFrame(equalizedAnimation.modelTransforms.Length, "Frame " + f);
+			newFrame.positionStates = theAnimation.getPositionsForPercentComplete((float)f / (numberOfFrames - 1));
+			newFrame.rotationStates = theAnimation.getRotationsForPercentComplete((float)f / (numberOfFrames - 1));
+			newFrameList.Add(newFrame);
 		}
 
-		return totalCycles;
+		equalizedAnimation.frames = newFrameList.ToArray();
+
+		return equalizedAnimation;
 	}
 
 	//For saving the animation
@@ -323,10 +379,116 @@ public class ModelAnimation
 	{
 		//base case
 		if(tr == tr.root)
-			//return tr.name;
 			return "";
 
 		return getHierarchy(tr.parent) + (tr.parent == tr.root ? "" : "/") + tr.name;
+	}
+
+	public int getCyclesForFrame(int frameIndex)
+	{
+		return (frames[frameIndex].playbackSpeed <= 0) ? (int)(100 / playbackSpeed) : (int)(100 / frames[frameIndex].playbackSpeed);
+	}
+
+	public int getTotalCyclesInAnimation()
+	{
+		int totalCycles = 0;
+
+		//Exclude the origin frame
+		for(int a = 1; a < frames.Length; ++a)
+		{
+			if(frames[a].playbackSpeed > 0)
+				totalCycles += (int)(100 / frames[a].playbackSpeed);
+			else
+				totalCycles += (int)(100 / playbackSpeed);
+		}
+
+		return totalCycles;
+	}
+
+	public float getAveragePlaybackSpeed()
+	{
+		float totalPlayback = 0;
+
+		//Exclude the origin frame
+		for(int a = 1; a < frames.Length; ++a)
+		{
+			if(frames[a].playbackSpeed > 0)
+				totalPlayback += frames[a].playbackSpeed;
+			else
+				totalPlayback += playbackSpeed;
+		}
+
+		return totalPlayback / (frames.Length - 1);
+	}
+
+	public Vector3[] getPositionsForPercentComplete(float percentComplete01)
+	{
+		if(percentComplete01 < 0 || percentComplete01 > 1)
+		{
+			Debug.Log("Percent Complete should be between 0 and 1");
+			return new Vector3[modelTransforms.Length];
+		}
+
+		Vector3[] posStates = new Vector3[modelTransforms.Length];
+		int totalCycles = getTotalCyclesInAnimation();
+		int lastFrameEndTime = 0;
+		int thisFrameEndTime;
+
+		for(int f = 1; f < frames.Length; ++f)
+		{
+			thisFrameEndTime = lastFrameEndTime + getCyclesForFrame(f);
+			float percentThrough = (float)thisFrameEndTime / totalCycles;
+
+			//The correct position is in this frame
+			if(percentComplete01 <= percentThrough)
+			{
+				for(int p = 0; p < posStates.Length; ++p)
+				{
+					posStates[p] = Vector3.Lerp(frames[f - 1].positionStates[p], frames[f].positionStates[p], (percentComplete01 - ((float)lastFrameEndTime / totalCycles)) / (((float)thisFrameEndTime / totalCycles) - ((float)lastFrameEndTime / totalCycles)));
+				}
+
+				break;
+			}
+
+			lastFrameEndTime = thisFrameEndTime;
+		}
+
+		return posStates;
+	}
+
+	public Quaternion[] getRotationsForPercentComplete(float percentComplete01)
+	{
+		if(percentComplete01 < 0 || percentComplete01 > 1)
+		{
+			Debug.Log("Percent Complete should be between 0 and 1");
+			return new Quaternion[modelTransforms.Length];
+		}
+
+		Quaternion[] rotStates = new Quaternion[modelTransforms.Length];
+		int totalCycles = getTotalCyclesInAnimation();
+		int lastFrameEndTime = 0;
+		int thisFrameEndTime;
+
+		for(int f = 1; f < frames.Length; ++f)
+		{
+			thisFrameEndTime = lastFrameEndTime + getCyclesForFrame(f);
+			float percentThrough = (float)thisFrameEndTime / totalCycles;
+
+			//The correct position is in this frame
+			if(percentComplete01 <= percentThrough)
+			{
+				for(int p = 0; p < rotStates.Length; ++p)
+				{
+					rotStates[p] = Quaternion.Lerp(frames[f - 1].rotationStates[p], frames[f].rotationStates[p], (percentComplete01 - ((float)lastFrameEndTime / totalCycles)) / (((float)thisFrameEndTime / totalCycles) - ((float)lastFrameEndTime / totalCycles)));
+				}
+
+				break;
+			}
+
+			lastFrameEndTime = thisFrameEndTime;
+		}
+
+		return rotStates;
 	}
 }
 

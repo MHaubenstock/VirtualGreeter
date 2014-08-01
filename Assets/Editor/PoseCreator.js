@@ -70,6 +70,13 @@ class PoseCreator extends EditorWindow
 		if(GUILayout.Button("Reset"))
 			reset();
 
+
+		if(GUILayout.Button("Smooth Recent Animation"))
+		{
+			modelAnimator.animations[modelAnimator.animations.Count - 1] = modelAnimator.equalizeAnimation(modelAnimator.animations[modelAnimator.animations.Count - 1], 4, 1);
+		}
+
+
 		if(GUILayout.Button("Save All Animations"))
 		{
 			//get serialized animations and save them to a file
@@ -79,6 +86,11 @@ class PoseCreator extends EditorWindow
 
 		if(GUILayout.Button("Load All Animations"))
 			modelAnimator.readAnimationsFromFile();
+
+		if(GUILayout.Button("Testing"))
+		{
+			Debug.Log(modelAnimator.animations[6].getRotationsForPercentComplete(0)[0] + "    " + modelAnimator.animations[6].getRotationsForPercentComplete(1)[0]);
+		}
 	}
 
 	function addSpace(spaces : int)
