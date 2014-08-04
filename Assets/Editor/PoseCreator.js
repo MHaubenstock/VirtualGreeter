@@ -73,9 +73,15 @@ class PoseCreator extends EditorWindow
 
 		if(GUILayout.Button("Smooth Recent Animation"))
 		{
-			modelAnimator.animations[modelAnimator.animations.Count - 1] = modelAnimator.equalizeAnimation(modelAnimator.animations[modelAnimator.animations.Count - 1], 4, 1);
+			//modelAnimator.animations.Add(modelAnimator.equalizeAnimation(modelAnimator.animations[6], 1));
+			modelAnimator.animations.Add(modelAnimator.setAnimationPlaybacAsCloseAsPossible(modelAnimator.animations[6], 4));
 		}
 
+		if(GUILayout.Button("Merge Animations"))
+		{
+			var modTest : ModelAnimation[] = [modelAnimator.animations[1], modelAnimator.animations[6]];
+			modelAnimator.animations.Add(modelAnimator.mergeAnimations(modTest));
+		}
 
 		if(GUILayout.Button("Save All Animations"))
 		{
@@ -87,10 +93,6 @@ class PoseCreator extends EditorWindow
 		if(GUILayout.Button("Load All Animations"))
 			modelAnimator.readAnimationsFromFile();
 
-		if(GUILayout.Button("Testing"))
-		{
-			Debug.Log(modelAnimator.animations[6].getRotationsForPercentComplete(0)[0] + "    " + modelAnimator.animations[6].getRotationsForPercentComplete(1)[0]);
-		}
 	}
 
 	function addSpace(spaces : int)

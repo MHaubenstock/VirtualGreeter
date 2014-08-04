@@ -168,33 +168,121 @@ public class ModelAnimator : MonoBehaviour
 
 		tempAnimList.AddRange(intermedAnimList.OrderBy(si => si.getTotalCyclesInAnimation()).Reverse());
 		modelAnimations = tempAnimList.ToArray();
-
 		//Done sorting
-		//Merge animations by priority
-		//For each animation:
-			//equalize animation or equalize elsewhere
-			//For each frame:
 
-		//use animation length of animations with highest priority and then longest time
+		//equalize all animations to make it easier to merge them
+		for(int a = 0; a < modelAnimations.Length; ++a)
+		{
+			modelAnimations[a] = setAnimationPlaybacAsCloseAsPossible(modelAnimations[a], 4);
+		}
 
-		//make last frame a return to origin frame
+		//Base the length of the merged animation off of the largest one with the highest priority
+		ModelAnimation guideAnimation = modelAnimations[0];
+		List<Transform> allTransforms = new List<Transform>();
+		List<AnimationFrame> allFrames = new List<AnimationFrame>();
+
+		//for each frame build a new merged frame
+		for(int f = 0; f < guideAnimation.frames.Length; ++f)
+		{
+			List<Transform> usedTransforms = new List<Transform>();
+			List<Vector3> positions = new List<Vector3>();
+			List<Quaternion> rotations = new List<Quaternion>();
+
+			//for each animation to merge
+			for(int a = 0; a < modelAnimations.Length; ++a)
+			{
+				//If new animation frame numer has gone beyong this animation's last frame number, then it no longer contributes
+				if(modelAnimations[a].frames.Length <= f)
+					continue;
+
+				//if it's transform hasn't been used this frame then use it because the animations are already sorted in order of usage
+				for(int t = 0; t < modelAnimations[a].modelTransforms.Length; ++t)
+				{
+					if(!usedTransforms.Contains(modelAnimations[a].modelTransforms[t]))
+					{
+						positions.Add(modelAnimations[a].frames[f].positionStates[t]);
+						rotations.Add(modelAnimations[a].frames[f].rotationStates[t]);
+						usedTransforms.Add(modelAnimations[a].modelTransforms[t]);
+
+						if(!allTransforms.Contains(modelAnimations[a].modelTransforms[t]))
+							allTransforms.Add(modelAnimations[a].modelTransforms[t]);
+					}
+				}
+			}
+
+			allFrames.Add(new AnimationFrame("Frame " + f, positions.ToArray(), rotations.ToArray()));
+		}
+
+		mergedAnimation.modelTransforms = allTransforms.ToArray();
+		mergedAnimation.frames = allFrames.ToArray();
+
+		//make last frame a return to origin frame (maybe)
 
 		return mergedAnimation;
 	}
 
 	//equalize animations and add or remove frames so that each frame takes the same number of cycles
-	public ModelAnimation equalizeAnimation(ModelAnimation theAnimation, int cyclesPerFrame, int resolution = 1)
+	public ModelAnimation equalizeAnimation(ModelAnimation theAnimation, int resolution = 1)
 	{
+		if(resolution <= 0)
+		{
+			Debug.Log("Resolution should be greater than 0");
+			return theAnimation;
+		}
+
 		ModelAnimation equalizedAnimation = new ModelAnimation();
 		List<AnimationFrame> newFrameList = new List<AnimationFrame>();
 
-		//initialize animation stuff, name, transforms, playback speed, priority
+		//initialize animation name, transforms, playback speed, and priority
 		equalizedAnimation.name = theAnimation.name;
 		equalizedAnimation.modelTransforms = theAnimation.modelTransforms;
-		equalizedAnimation.playbackSpeed = theAnimation.getAveragePlaybackSpeed();
+		equalizedAnimation.playbackSpeed = theAnimation.getAveragePlaybackSpeed() * resolution;
 		equalizedAnimation.priority = theAnimation.priority;
 
 		int numberOfFrames = theAnimation.frames.Length * resolution;
+
+		//Add origin frame
+		AnimationFrame newFrame = new AnimationFrame(equalizedAnimation.modelTransforms.Length, "Origin Frame");
+		newFrame.positionStates = theAnimation.frames[0].positionStates;
+		newFrame.rotationStates = theAnimation.frames[0].rotationStates;
+		newFrameList.Add(newFrame);
+
+		for(int f = 1; f < numberOfFrames; ++f)
+		{
+			newFrame = new AnimationFrame(equalizedAnimation.modelTransforms.Length, "Frame " + f);
+			newFrame.positionStates = theAnimation.getPositionsForPercentComplete((float)f / (numberOfFrames - 1));
+			newFrame.rotationStates = theAnimation.getRotationsForPercentComplete((float)f / (numberOfFrames - 1));
+			newFrameList.Add(newFrame);
+		}
+
+		equalizedAnimation.frames = newFrameList.ToArray();
+
+		return equalizedAnimation;
+	}
+
+	//Sets the animations playback speed as close as possible to the desired playback speed
+	public ModelAnimation setAnimationPlaybacAsCloseAsPossible(ModelAnimation theAnimation, float pBackSpeed)
+	{
+		if(pBackSpeed <= 0)
+		{
+			Debug.Log("Resolution should be greater than 0");
+			return theAnimation;
+		}
+
+		ModelAnimation equalizedAnimation = new ModelAnimation();
+		List<AnimationFrame> newFrameList = new List<AnimationFrame>();
+
+		float averageAnimationFrameLength = 100 / theAnimation.getAveragePlaybackSpeed();
+
+		//get closest float that divides evenly into animation length, rounds down and increases number of frames, gets better resolut
+		float actualPbackSpeed = pBackSpeed - ((averageAnimationFrameLength % pBackSpeed) / 2);
+		int numberOfFrames = (int)(averageAnimationFrameLength / actualPbackSpeed);
+
+		//initialize animation name, transforms, playback speed, and priority
+		equalizedAnimation.name = theAnimation.name;
+		equalizedAnimation.modelTransforms = theAnimation.modelTransforms;
+		equalizedAnimation.playbackSpeed = actualPbackSpeed;
+		equalizedAnimation.priority = theAnimation.priority;
 
 		//Add origin frame
 		AnimationFrame newFrame = new AnimationFrame(equalizedAnimation.modelTransforms.Length, "Origin Frame");
@@ -507,6 +595,13 @@ public class AnimationFrame
 		frameName = "Frame: " + name;
 		positionStates = new Vector3[numOfTransforms];
 		rotationStates = new Quaternion[numOfTransforms];
+	}
+
+	public AnimationFrame(string name, Vector3[] positions, Quaternion[] rotations)
+	{
+		frameName = "Frame: " + name;
+		positionStates = positions;
+		rotationStates = rotations;
 	}
 
 	//For saving the frame
