@@ -17,6 +17,7 @@ public class ModelAnimator : MonoBehaviour
 	private AudioSource audioSource;
 
 	private bool animationIsPlaying = false;
+	private int numOfAnimationsPlaying = 0;
 
 	// Use this for initialization
 	void Start ()
@@ -29,7 +30,7 @@ public class ModelAnimator : MonoBehaviour
 	void Update ()
 	{
 		//If an animation is playing, turn off the built-in animator
-		if(animationIsPlaying)
+		if(numOfAnimationsPlaying > 0)
 			builtinAnimator.enabled = false;
 		else
 			builtinAnimator.enabled = true;
@@ -56,6 +57,8 @@ public class ModelAnimator : MonoBehaviour
 		audioSource.Play();
 
 		//Start the animation
+		StartCoroutine(animateModel(7, val => animationIsPlaying = val));
+		//Start speaking animation
 		StartCoroutine(animateModel(8, val => animationIsPlaying = val));
 	}
 
@@ -86,6 +89,7 @@ public class ModelAnimator : MonoBehaviour
 	IEnumerator animateModel(int index, Action<bool> playing)
 	{
 		playing(true);
+		++numOfAnimationsPlaying;
 
 		ModelAnimation anim = animations[index];
 		float frameProgress = 0.0F;
@@ -124,6 +128,7 @@ public class ModelAnimator : MonoBehaviour
 		}
 
 		playing(false);
+		--numOfAnimationsPlaying;
 		return true;
 	}
 
