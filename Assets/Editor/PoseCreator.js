@@ -74,13 +74,21 @@ class PoseCreator extends EditorWindow
 		if(GUILayout.Button("Smooth Recent Animation"))
 		{
 			//modelAnimator.animations.Add(modelAnimator.equalizeAnimation(modelAnimator.animations[6], 1));
-			modelAnimator.animations.Add(modelAnimator.setAnimationPlaybacAsCloseAsPossible(modelAnimator.animations[6], 4));
+			modelAnimator.animations.Add(modelAnimator.setAnimationPlaybackAsCloseAsPossible(modelAnimator.animations[4], 4));
 		}
 
 		if(GUILayout.Button("Merge Animations"))
 		{
-			var modTest : ModelAnimation[] = [modelAnimator.animations[1], modelAnimator.animations[6]];
+			var modTest : ModelAnimation[] = [modelAnimator.animations[7], modelAnimator.animations[4]];
 			modelAnimator.animations.Add(modelAnimator.mergeAnimations(modTest));
+		}
+
+		if(GUILayout.Button("String Together Animations"))
+		{
+			var animations : ModelAnimation[] = [modelAnimator.animations[2], modelAnimator.animations[3]];
+			var pauses : float[] = [1.5];
+
+			modelAnimator.animations.Add(modelAnimator.stringAnimationsForNewAnimation(animations, pauses));
 		}
 
 		if(GUILayout.Button("Save All Animations"))

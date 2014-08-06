@@ -16,24 +16,24 @@ public class ModelAnimator : MonoBehaviour
 	private Animator builtinAnimator;
 	private AudioSource audioSource;
 
-	private bool dummyVar = false;
+	private bool animationIsPlaying = false;
 
 	// Use this for initialization
 	void Start ()
 	{
 		builtinAnimator = model.GetComponent<Animator>();
 		audioSource = model.audio;
-		//Debug.Log(getTotalCyclesInAnimation(animations[5]));
-
-		ModelAnimation[] modTest = {animations[1], animations[0], animations[2]};
-		//mergeAnimations(modTest);
-
-		equalizeAnimation(animations[0], 6);
 	}
 	
 	// Update is called once per frame
 	void Update ()
 	{
+		//If an animation is playing, turn off the built-in animator
+		if(animationIsPlaying)
+			builtinAnimator.enabled = false;
+		else
+			builtinAnimator.enabled = true;
+
 		if(Input.GetKeyDown(KeyCode.Alpha1))
 			greetCustomer();
 	}
@@ -44,7 +44,7 @@ public class ModelAnimator : MonoBehaviour
 		{
 			if(GUI.Button(new Rect(0, 31 * a, animations[a].name.Length * 8, 30), animations[a].name))
 			{
-				StartCoroutine(animateModel(a, val => dummyVar = val));
+				StartCoroutine(animateModel(a, val => animationIsPlaying = val));
 			}
 		}
 	}
@@ -52,35 +52,25 @@ public class ModelAnimator : MonoBehaviour
 	//Tailored animation and audio managing methods
 	void greetCustomer()
 	{
-		int [] animationIndices = new int[2];
-		float [] pauses = new float[animationIndices.Length - 1];
-
-		animationIndices[0] = 2;
-		pauses[0] = 1.5F;
-		animationIndices[1] = 3;
-
 		//Start Greeting.AIFF
 		audioSource.Play();
 
-		//Start waving animation
-		//When waving animation finishes, play gesturing left animation
-		StartCoroutine(stringTogetherAnimations(animationIndices, pauses));
-
-		//interruptCustomIdle();
+		//Start the animation
+		StartCoroutine(animateModel(8, val => animationIsPlaying = val));
 	}
 
 	//takes in an array of the indices of the animations
 	//Strings animations together so one plays after the other finishes
-	IEnumerator stringTogetherAnimations(int [] animationIndices, float [] pauses)
+	IEnumerator stringTogetherAnimations(int[] animationIndices, float[] pauses)
 	{
-		bool animationFinished = false;
+		bool animationPlaying = true;
 
 		//calls animateModel on animations one by one as they finish
 		for(int a = 0; a < animationIndices.Length; ++a)
 		{
-			StartCoroutine(animateModel(animationIndices[a], fin => animationFinished = fin));
+			StartCoroutine(animateModel(animationIndices[a], fin => animationPlaying = fin));
 
-			while(!animationFinished)
+			while(animationPlaying)
 			{
 				yield return false;
 			}
@@ -93,8 +83,10 @@ public class ModelAnimator : MonoBehaviour
 	}
 
 	//runs as a coroutine and animates the model
-	IEnumerator animateModel(int index, Action<bool> finished)
+	IEnumerator animateModel(int index, Action<bool> playing)
 	{
+		playing(true);
+
 		ModelAnimation anim = animations[index];
 		float frameProgress = 0.0F;
 
@@ -131,8 +123,7 @@ public class ModelAnimator : MonoBehaviour
 			frameProgress = 0;
 		}
 
-		finished(true);
-		//yield return true;
+		playing(false);
 		return true;
 	}
 
@@ -173,11 +164,13 @@ public class ModelAnimator : MonoBehaviour
 		//equalize all animations to make it easier to merge them
 		for(int a = 0; a < modelAnimations.Length; ++a)
 		{
-			modelAnimations[a] = setAnimationPlaybacAsCloseAsPossible(modelAnimations[a], 4);
+			modelAnimations[a] = setAnimationPlaybackAsCloseAsPossible(modelAnimations[a], 4);
 		}
 
 		//Base the length of the merged animation off of the largest one with the highest priority
+		//If no guide animation was sent into the function
 		ModelAnimation guideAnimation = modelAnimations[0];
+
 		List<Transform> allTransforms = new List<Transform>();
 		List<AnimationFrame> allFrames = new List<AnimationFrame>();
 
@@ -191,17 +184,23 @@ public class ModelAnimator : MonoBehaviour
 			//for each animation to merge
 			for(int a = 0; a < modelAnimations.Length; ++a)
 			{
-				//If new animation frame numer has gone beyong this animation's last frame number, then it no longer contributes
-				if(modelAnimations[a].frames.Length <= f)
-					continue;
-
 				//if it's transform hasn't been used this frame then use it because the animations are already sorted in order of usage
 				for(int t = 0; t < modelAnimations[a].modelTransforms.Length; ++t)
 				{
 					if(!usedTransforms.Contains(modelAnimations[a].modelTransforms[t]))
 					{
-						positions.Add(modelAnimations[a].frames[f].positionStates[t]);
-						rotations.Add(modelAnimations[a].frames[f].rotationStates[t]);
+						//If new animation frame number has gone beyong this animation's last frame number, then it no longer contributes
+						if(modelAnimations[a].frames.Length <= f)
+						{
+							positions.Add(modelAnimations[a].frames[modelAnimations[a].frames.Length - 1].positionStates[t]);
+							rotations.Add(modelAnimations[a].frames[modelAnimations[a].frames.Length - 1].rotationStates[t]);
+						}
+						else
+						{
+							positions.Add(modelAnimations[a].frames[f].positionStates[t]);
+							rotations.Add(modelAnimations[a].frames[f].rotationStates[t]);
+						}
+
 						usedTransforms.Add(modelAnimations[a].modelTransforms[t]);
 
 						if(!allTransforms.Contains(modelAnimations[a].modelTransforms[t]))
@@ -213,6 +212,12 @@ public class ModelAnimator : MonoBehaviour
 			allFrames.Add(new AnimationFrame("Frame " + f, positions.ToArray(), rotations.ToArray()));
 		}
 
+		string aniName = "";
+		foreach(ModelAnimation ani in modelAnimations)
+			aniName += ani.name + "-";
+
+		mergedAnimation.name = aniName + "Merged";
+		mergedAnimation.playbackSpeed = guideAnimation.playbackSpeed;
 		mergedAnimation.modelTransforms = allTransforms.ToArray();
 		mergedAnimation.frames = allFrames.ToArray();
 
@@ -260,8 +265,110 @@ public class ModelAnimator : MonoBehaviour
 		return equalizedAnimation;
 	}
 
+	public ModelAnimation stringAnimationsForNewAnimation(ModelAnimation[] modelAnimations, float[] pauses)
+	{
+		ModelAnimation strungAnimation = new ModelAnimation();
+		List<Transform> allTransforms = new List<Transform>();
+		List<AnimationFrame> allFrames = new List<AnimationFrame>();
+		AnimationFrame newFrame;
+		string theName = "";
+
+		//get transforms for all animations and initialize strungAnimation
+		foreach(ModelAnimation ani in modelAnimations)
+		{
+			theName += ani.name + "-";
+
+			foreach(Transform t in ani.modelTransforms)
+				if(!(allTransforms.Contains(t)))
+					allTransforms.Add(t);
+		}
+
+		strungAnimation.name = theName + "String";
+		strungAnimation.modelTransforms = allTransforms.ToArray();
+		strungAnimation.playbackSpeed = 1;
+		strungAnimation.priority = 0;
+
+		//for each animation...
+		for(int a = 0; a < modelAnimations.Length; ++a)
+		{
+			//Put this animation's transformsinto a list for easy checking
+			List<Transform> thisAnimationTransforms = modelAnimations[a].modelTransforms.ToList();
+
+			//for each frame...
+			for(int f = 0; f < modelAnimations[a].frames.Length; ++f)
+			{
+				newFrame = new AnimationFrame(allTransforms.Count, "Frame " + allFrames.Count);
+				newFrame.playbackSpeed = modelAnimations[a].frames[f].playbackSpeed == 0 ? 0 : modelAnimations[a].frames[f].playbackSpeed;
+
+				//for each transform...
+				for(int t = 0; t < allTransforms.Count; ++t)
+				{
+					//if current animation contains this transform
+					if(thisAnimationTransforms.Contains(allTransforms[t]))
+					{
+						//set position and rotation for this frame
+						newFrame.positionStates[t] = modelAnimations[a].frames[f].positionStates[thisAnimationTransforms.IndexOf(allTransforms[t])];
+						newFrame.rotationStates[t] = modelAnimations[a].frames[f].rotationStates[thisAnimationTransforms.IndexOf(allTransforms[t])];
+					}
+					else
+					{
+						//else set position and rotation for this transform to the same position and rotation as last frame
+						
+						//If this is the first frame and you reach a transform not used in this animation...
+						if(allFrames.Count == 0)
+						{
+							//Check each animation after the first one to see if the transform is contained in it
+							//if it is then use that animations first frame position state for this position state, same for rotation
+							for(int an = 1; an < modelAnimations.Length; ++an)
+							{
+								List<Transform> otherAnimationTransforms = modelAnimations[an].modelTransforms.ToList();	
+								
+								if(otherAnimationTransforms.Contains(allTransforms[t]))
+								{
+									newFrame.positionStates[t] = modelAnimations[an].frames[0].positionStates[otherAnimationTransforms.IndexOf(allTransforms[t])];
+									newFrame.rotationStates[t] = modelAnimations[an].frames[0].rotationStates[otherAnimationTransforms.IndexOf(allTransforms[t])];
+
+									break;
+								}
+							}							
+						}
+						else
+						{
+							newFrame.positionStates[t] = allFrames[allFrames.Count - 1].positionStates[t];
+							newFrame.rotationStates[t] = allFrames[allFrames.Count - 1].rotationStates[t];
+						}
+					}
+				}
+
+				//add frame to allFrames
+				allFrames.Add(newFrame);
+			}
+
+			//Add the pause if there is one
+			if(a < pauses.Length)
+			{
+				newFrame = new AnimationFrame(allTransforms.Count, "Frame " + allFrames.Count);
+				newFrame.playbackSpeed = (100 / pauses[a]) * 0.0025F;
+
+				//Set position and rotation equal to position and rotation of last frame
+				newFrame.positionStates = allFrames[allFrames.Count - 1].positionStates;
+				newFrame.rotationStates = allFrames[allFrames.Count - 1].rotationStates;
+
+				allFrames.Add(newFrame);
+			}
+		}
+
+		//Finalize strung animations
+		strungAnimation.frames = allFrames.ToArray();
+
+		//equalize the animation
+		//strungAnimation = equalizeAnimation(strungAnimation, 3);
+
+		return strungAnimation;
+	}
+
 	//Sets the animations playback speed as close as possible to the desired playback speed
-	public ModelAnimation setAnimationPlaybacAsCloseAsPossible(ModelAnimation theAnimation, float pBackSpeed)
+	public ModelAnimation setAnimationPlaybackAsCloseAsPossible(ModelAnimation theAnimation, float pBackSpeed)
 	{
 		if(pBackSpeed <= 0)
 		{
@@ -275,7 +382,7 @@ public class ModelAnimator : MonoBehaviour
 		float averageAnimationFrameLength = 100 / theAnimation.getAveragePlaybackSpeed();
 
 		//get closest float that divides evenly into animation length, rounds down and increases number of frames, gets better resolut
-		float actualPbackSpeed = pBackSpeed - ((averageAnimationFrameLength % pBackSpeed) / 2);
+		float actualPbackSpeed = pBackSpeed - ((Mathf.CeilToInt(averageAnimationFrameLength) % (int)pBackSpeed) / 2);
 		int numberOfFrames = (int)(averageAnimationFrameLength / actualPbackSpeed);
 
 		//initialize animation name, transforms, playback speed, and priority
