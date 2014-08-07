@@ -75,21 +75,22 @@ class PoseCreator extends EditorWindow
 		{
 			//modelAnimator.animations.Add(modelAnimator.equalizeAnimation(modelAnimator.animations[6], 1));
 			modelAnimator.animations.Add(modelAnimator.setAnimationPlaybackAsCloseAsPossible(modelAnimator.animations[4], 4));
-			//modelAnimator.animations.RemoveAt(9);
+			//modelAnimator.animations.RemoveAt(14);
 		}
 
 		if(GUILayout.Button("Merge Animations"))
 		{
-			var modTest : ModelAnimation[] = [modelAnimator.animations[7], modelAnimator.animations[8]];
+			var modTest : ModelAnimation[] = [modelAnimator.animations[12], modelAnimator.animations[4]];
 			modelAnimator.animations.Add(modelAnimator.mergeAnimations(modTest));
 		}
 
 		if(GUILayout.Button("String Together Animations"))
 		{
-			var animations : ModelAnimation[] = [modelAnimator.animations[8], modelAnimator.animations[8]];
-			var pauses : float[] = [0.4];
+			//var animations : ModelAnimation[] = [modelAnimator.animations[0], modelAnimator.animations[0], modelAnimator.animations[5], modelAnimator.animations[0], modelAnimator.animations[5]];
+			var animations : ModelAnimation[] = [modelAnimator.animations[14], modelAnimator.animations[15]];
+			var pauses : float[] = [0.05];
 
-			modelAnimator.animations.Add(modelAnimator.stringAnimationsForNewAnimation(animations, pauses));
+			modelAnimator.animations.Add(modelAnimator.stringAnimationsForNewAnimation(animations, pauses, false, false));
 		}
 
 		if(GUILayout.Button("Save All Animations"))
@@ -125,6 +126,7 @@ class PoseCreator extends EditorWindow
 		var transformArr : Array = new Array();
 		var positionArr : Array = new Array();
 		var rotationArr : Array = new Array();
+		var usedATransform : boolean = false;
 
 		var tempAnimation : ModelAnimation = new ModelAnimation();
 		tempAnimation.name = animationName;
@@ -142,7 +144,10 @@ class PoseCreator extends EditorWindow
 			for(var uf : int = 0; uf < workingAnimation.frames[ua].theTransforms.length; ++uf)
 			{
 				if((workingAnimation.frames[ua].positionStates[uf] != workingAnimation.frames[ua - 1].positionStates[uf]) || (workingAnimation.frames[ua].rotationStates[uf] != workingAnimation.frames[ua - 1].rotationStates[uf]))
+				{
 					usedTransforms[uf] = true;
+					usedATransform = true;
+				}
 			}
 		}
 
@@ -153,7 +158,7 @@ class PoseCreator extends EditorWindow
 			//compare this frame to frame a-1, keep only transforms and vector 3's that change
 			for(var f : int = 0; f < workingAnimation.frames[a].theTransforms.length; ++f)
 			{
-				if(usedTransforms[f])
+				if(usedTransforms[f] || !usedATransform)
 				{
 					//add to array of used transforms for this frame
 					transformArr.Add(workingAnimation.frames[a].theTransforms[f]);
@@ -176,7 +181,7 @@ class PoseCreator extends EditorWindow
 		//process first frame as a starting state
 		for(var x : int = 0; x < usedTransforms.length; ++x)
 		{
-			if(usedTransforms[x])
+			if(usedTransforms[x] || !usedATransform)
 			{
 				transformArr.Add(workingAnimation.frames[0].theTransforms[x]);
 				positionArr.Add(workingAnimation.frames[0].positionStates[x]);

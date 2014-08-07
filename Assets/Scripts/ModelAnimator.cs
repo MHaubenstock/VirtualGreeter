@@ -5,12 +5,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-//TODO: Add animation priorities
-//TODO: Stop the buitin animation when certain other animations are playing
+//TODO: Not merging properly with the idle animation. Look into this
+//TODO: She moves around, anchor her to a single spot
 
 public class ModelAnimator : MonoBehaviour
 {
 	public GameObject model;
+	public AudioClip[] audioClips;
 	public List<ModelAnimation> animations;
 
 	private Animator builtinAnimator;
@@ -37,6 +38,12 @@ public class ModelAnimator : MonoBehaviour
 
 		if(Input.GetKeyDown(KeyCode.Alpha1))
 			greetCustomer();
+
+		if(Input.GetKeyDown(KeyCode.Alpha2))
+			greetCustomer2();
+
+		if(Input.GetKeyDown(KeyCode.Alpha3))
+			greetCustomer3();
 	}
 
 	void OnGUI()
@@ -54,12 +61,37 @@ public class ModelAnimator : MonoBehaviour
 	void greetCustomer()
 	{
 		//Start Greeting.AIFF
+		audioSource.clip = audioClips[0];
 		audioSource.Play();
 
 		//Start the animation
 		StartCoroutine(animateModel(7, val => animationIsPlaying = val));
 		//Start speaking animation
 		StartCoroutine(animateModel(8, val => animationIsPlaying = val));
+	}
+
+	void greetCustomer2()
+	{
+		//Start Greeting2.AIFF
+		audioSource.clip = audioClips[1];
+		audioSource.Play();
+
+		//Start the animation
+		StartCoroutine(animateModel(12, val => animationIsPlaying = val));
+		//Start speaking animation
+		StartCoroutine(animateModel(13, val => animationIsPlaying = val));
+	}
+
+	void greetCustomer3()
+	{
+		//Start Greeting3.AIFF
+		audioSource.clip = audioClips[2];
+		audioSource.Play();
+
+		//Start the animation
+		StartCoroutine(animateModel(12, val => animationIsPlaying = val)); //uses the animation for greeting 2 for now
+		//Start speaking animation
+		StartCoroutine(animateModel(14, val => animationIsPlaying = val));
 	}
 
 	//takes in an array of the indices of the animations
@@ -114,12 +146,12 @@ public class ModelAnimator : MonoBehaviour
 				{
 					anim.modelTransforms[t].localPosition = Vector3.Lerp(anim.frames[f - 1].positionStates[t], anim.frames[f].positionStates[t], frameProgress / 100.0F);
 					anim.modelTransforms[t].localRotation = Quaternion.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
-					
-					if(anim.frames[f].playbackSpeed == 0)
-						frameProgress += anim.playbackSpeed;
-					else
-						frameProgress += anim.frames[f].playbackSpeed;
 				}
+
+				if(anim.frames[f].playbackSpeed == 0)
+					frameProgress += anim.playbackSpeed;
+				else
+					frameProgress += anim.frames[f].playbackSpeed;
 
 				yield return false;
 			}
@@ -270,6 +302,109 @@ public class ModelAnimator : MonoBehaviour
 		return equalizedAnimation;
 	}
 
+	public ModelAnimation stringAnimationsForNewAnimation(ModelAnimation[] modelAnimations, float[] pauses, bool skipOriginFrame, bool skipBackToOriginFrame)
+	{
+		ModelAnimation strungAnimation = new ModelAnimation();
+		List<Transform> allTransforms = new List<Transform>();
+		List<AnimationFrame> allFrames = new List<AnimationFrame>();
+		AnimationFrame newFrame;
+		string theName = "";
+
+		//get transforms for all animations and initialize strungAnimation
+		foreach(ModelAnimation ani in modelAnimations)
+		{
+			theName += ani.name + "-";
+
+			foreach(Transform t in ani.modelTransforms)
+				if(!(allTransforms.Contains(t)))
+					allTransforms.Add(t);
+		}
+
+		strungAnimation.name = theName + "String";
+		strungAnimation.modelTransforms = allTransforms.ToArray();
+		strungAnimation.playbackSpeed = 1;
+		strungAnimation.priority = 0;
+
+		//for each animation...
+		for(int a = 0; a < modelAnimations.Length; ++a)
+		{
+			//Put this animation's transformsinto a list for easy checking
+			List<Transform> thisAnimationTransforms = modelAnimations[a].modelTransforms.ToList();
+
+			//for each frame...
+			for(int f = (a > 0 && skipOriginFrame ? 1 : 0); f < modelAnimations[a].frames.Length + (skipBackToOriginFrame ? -1 : 0); ++f)
+			{
+				newFrame = new AnimationFrame(allTransforms.Count, "Frame " + allFrames.Count);
+				newFrame.playbackSpeed = modelAnimations[a].frames[f].playbackSpeed == 0 ? 0 : modelAnimations[a].frames[f].playbackSpeed;
+
+				//for each transform...
+				for(int t = 0; t < allTransforms.Count; ++t)
+				{
+					//if current animation contains this transform
+					if(thisAnimationTransforms.Contains(allTransforms[t]))
+					{
+						//set position and rotation for this frame
+						newFrame.positionStates[t] = modelAnimations[a].frames[f].positionStates[thisAnimationTransforms.IndexOf(allTransforms[t])];
+						newFrame.rotationStates[t] = modelAnimations[a].frames[f].rotationStates[thisAnimationTransforms.IndexOf(allTransforms[t])];
+					}
+					else
+					{
+						//else set position and rotation for this transform to the same position and rotation as last frame
+						
+						//If this is the first frame and you reach a transform not used in this animation...
+						if(allFrames.Count == 0)
+						{
+							//Check each animation after the first one to see if the transform is contained in it
+							//if it is then use that animations first frame position state for this position state, same for rotation
+							for(int an = 1; an < modelAnimations.Length; ++an)
+							{
+								List<Transform> otherAnimationTransforms = modelAnimations[an].modelTransforms.ToList();	
+								
+								if(otherAnimationTransforms.Contains(allTransforms[t]))
+								{
+									newFrame.positionStates[t] = modelAnimations[an].frames[0].positionStates[otherAnimationTransforms.IndexOf(allTransforms[t])];
+									newFrame.rotationStates[t] = modelAnimations[an].frames[0].rotationStates[otherAnimationTransforms.IndexOf(allTransforms[t])];
+
+									break;
+								}
+							}							
+						}
+						else
+						{
+							newFrame.positionStates[t] = allFrames[allFrames.Count - 1].positionStates[t];
+							newFrame.rotationStates[t] = allFrames[allFrames.Count - 1].rotationStates[t];
+						}
+					}
+				}
+
+				//add frame to allFrames
+				allFrames.Add(newFrame);
+			}
+
+			//Add the pause if there is one
+			if(a < pauses.Length)
+			{
+				newFrame = new AnimationFrame(allTransforms.Count, "Frame " + allFrames.Count);
+				newFrame.playbackSpeed = (100 / pauses[a]) * 0.0025F;
+
+				//Set position and rotation equal to position and rotation of last frame
+				newFrame.positionStates = allFrames[allFrames.Count - 1].positionStates;
+				newFrame.rotationStates = allFrames[allFrames.Count - 1].rotationStates;
+
+				allFrames.Add(newFrame);
+			}
+		}
+
+		//Finalize strung animations
+		strungAnimation.frames = allFrames.ToArray();
+
+		//equalize the animation
+		//strungAnimation = equalizeAnimation(strungAnimation, 3);
+
+		return strungAnimation;
+	}
+
+	/*
 	public ModelAnimation stringAnimationsForNewAnimation(ModelAnimation[] modelAnimations, float[] pauses)
 	{
 		ModelAnimation strungAnimation = new ModelAnimation();
@@ -371,6 +506,7 @@ public class ModelAnimator : MonoBehaviour
 
 		return strungAnimation;
 	}
+	*/
 
 	//Sets the animations playback speed as close as possible to the desired playback speed
 	public ModelAnimation setAnimationPlaybackAsCloseAsPossible(ModelAnimation theAnimation, float pBackSpeed)
