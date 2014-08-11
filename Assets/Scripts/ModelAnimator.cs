@@ -19,6 +19,8 @@ public class ModelAnimator : MonoBehaviour
 
 	private bool animationIsPlaying = false;
 	private int numOfAnimationsPlaying = 0;
+	private Vector3[] builtinAniPositions;
+	private Quaternion[] builtinAniRotations;
 
 	// Use this for initialization
 	void Start ()
@@ -52,6 +54,8 @@ public class ModelAnimator : MonoBehaviour
 		{
 			if(GUI.Button(new Rect(0, 31 * a, animations[a].name.Length * 8, 30), animations[a].name))
 			{
+				gatherTransforms();
+
 				StartCoroutine(animateModel(a, val => animationIsPlaying = val));
 			}
 		}
@@ -60,6 +64,8 @@ public class ModelAnimator : MonoBehaviour
 	//Tailored animation and audio managing methods
 	void greetCustomer()
 	{
+		gatherTransforms();
+
 		//Start Greeting.AIFF
 		audioSource.clip = audioClips[0];
 		audioSource.Play();
@@ -72,6 +78,8 @@ public class ModelAnimator : MonoBehaviour
 
 	void greetCustomer2()
 	{
+		gatherTransforms();
+
 		//Start Greeting2.AIFF
 		audioSource.clip = audioClips[1];
 		audioSource.Play();
@@ -84,6 +92,8 @@ public class ModelAnimator : MonoBehaviour
 
 	void greetCustomer3()
 	{
+		gatherTransforms();
+
 		//Start Greeting3.AIFF
 		audioSource.clip = audioClips[2];
 		audioSource.Play();
@@ -92,6 +102,25 @@ public class ModelAnimator : MonoBehaviour
 		StartCoroutine(animateModel(12, val => animationIsPlaying = val)); //uses the animation for greeting 2 for now
 		//Start speaking animation
 		StartCoroutine(animateModel(14, val => animationIsPlaying = val));
+	}
+
+	void gatherTransforms()
+	{
+		if(numOfAnimationsPlaying == 0)
+		{
+			List<Vector3> pos = new List<Vector3>();
+			List<Quaternion> rot = new List<Quaternion>();
+
+			//collect all transforms
+			foreach(Transform t in model.GetComponentsInChildren<Transform>())
+			{
+				pos.Add(t.localPosition);
+				rot.Add(t.localRotation);
+			}
+
+			builtinAniPositions = pos.ToArray();
+			builtinAniRotations = rot.ToArray();
+		}
 	}
 
 	//takes in an array of the indices of the animations
@@ -126,12 +155,41 @@ public class ModelAnimator : MonoBehaviour
 		ModelAnimation anim = animations[index];
 		float frameProgress = 0.0F;
 
+		if(numOfAnimationsPlaying == 1)
+		{
+			List<Vector3> pos = new List<Vector3>();
+			List<Quaternion> rot = new List<Quaternion>();
+
+			//Gather from positions and rotations
+			foreach(Transform t in anim.modelTransforms)
+			{
+				pos.Add(t.localPosition);
+				rot.Add(t.localRotation);
+			}
+
+			//Lerp to origin frame
+			while(frameProgress < 100)
+			{
+				for(int o = 0; o < anim.modelTransforms.Length; ++o)
+				{
+					anim.modelTransforms[o].localPosition = Vector3.Lerp(pos[o], anim.frames[0].positionStates[o], frameProgress / 100.0F);
+					anim.modelTransforms[o].localRotation = Quaternion.Lerp(rot[o], anim.frames[0].rotationStates[o], frameProgress / 100.0F);
+				}
+
+				frameProgress += 5;
+
+				yield return false;
+			}
+		}
+
+		/*
 		//set to origin frame
 		for(int o = 0; o < anim.modelTransforms.Length; ++o)
 		{
 			anim.modelTransforms[o].localPosition = anim.frames[0].positionStates[o];
 			anim.modelTransforms[o].localRotation = anim.frames[0].rotationStates[o];
 		}
+		*/
 
 		//Now animate
 		//for each frame....
@@ -157,6 +215,35 @@ public class ModelAnimator : MonoBehaviour
 			}
 
 			frameProgress = 0;
+		}
+
+		//return to position and rotation of model before starting the animation
+		if(numOfAnimationsPlaying == 1)
+		{
+			Transform[] allTransforms = model.GetComponentsInChildren<Transform>();
+			List<Vector3> pos = new List<Vector3>();
+			List<Quaternion> rot = new List<Quaternion>();
+			frameProgress = 0;
+
+			//collect all transforms
+			foreach(Transform t in model.GetComponentsInChildren<Transform>())
+			{
+				pos.Add(t.localPosition);
+				rot.Add(t.localRotation);
+			}
+
+			while(frameProgress < 100)
+			{
+				for(int t = 0; t < builtinAniPositions.Length; ++t)
+				{
+					allTransforms[t].localPosition = Vector3.Lerp(pos[t], builtinAniPositions[t], frameProgress / 100.0F);
+					allTransforms[t].localRotation = Quaternion.Lerp(rot[t], builtinAniRotations[t], frameProgress / 100.0F);
+				}
+
+				frameProgress += 5;
+
+				yield return false;
+			}
 		}
 
 		playing(false);
