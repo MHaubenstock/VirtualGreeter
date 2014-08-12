@@ -172,6 +172,10 @@ public class ModelAnimator : MonoBehaviour
 			{
 				for(int o = 0; o < anim.modelTransforms.Length; ++o)
 				{
+					//Don't move root transform because it leads to weird shifting
+					if(anim.modelTransforms[o] == anim.modelTransforms[o].root)
+						continue;
+
 					anim.modelTransforms[o].localPosition = Vector3.Lerp(pos[o], anim.frames[0].positionStates[o], frameProgress / 100.0F);
 					anim.modelTransforms[o].localRotation = Quaternion.Lerp(rot[o], anim.frames[0].rotationStates[o], frameProgress / 100.0F);
 				}
@@ -180,6 +184,9 @@ public class ModelAnimator : MonoBehaviour
 
 				yield return false;
 			}
+			
+			//reset frame progress
+			frameProgress = 0;
 		}
 
 		/*
@@ -202,6 +209,10 @@ public class ModelAnimator : MonoBehaviour
 				//for each transform in frame
 				for(int t = 0; t < anim.modelTransforms.Length; ++t)
 				{
+					//Don't move root transform because it leads to weird shifting
+					if(anim.modelTransforms[t] == anim.modelTransforms[t].root)
+						continue;
+
 					anim.modelTransforms[t].localPosition = Vector3.Lerp(anim.frames[f - 1].positionStates[t], anim.frames[f].positionStates[t], frameProgress / 100.0F);
 					anim.modelTransforms[t].localRotation = Quaternion.Lerp(anim.frames[f - 1].rotationStates[t], anim.frames[f].rotationStates[t], frameProgress / 100.0F);
 				}
@@ -236,6 +247,10 @@ public class ModelAnimator : MonoBehaviour
 			{
 				for(int t = 0; t < builtinAniPositions.Length; ++t)
 				{
+					//Don't move root transform because it leads to weird shifting
+					if(allTransforms[t] == allTransforms[t].root)
+						continue;
+
 					allTransforms[t].localPosition = Vector3.Lerp(pos[t], builtinAniPositions[t], frameProgress / 100.0F);
 					allTransforms[t].localRotation = Quaternion.Lerp(rot[t], builtinAniRotations[t], frameProgress / 100.0F);
 				}
