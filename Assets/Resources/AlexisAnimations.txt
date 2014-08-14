@@ -8194,7 +8194,7 @@ endframe
 BackToOrigin (For Stringing)
 1
 92
-
+Alexis
 Alexis_Geo_Low
 Hips
 Hips/LeftUpLeg
@@ -8880,7 +8880,7 @@ Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandPinky
 Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandRing1
 Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandRing1/LeftHandRing2
 Hips/Spine/Spine1/Spine2/Neck
-
+Alexis
 Alexis_Geo_Low
 Hips
 Hips/LeftUpLeg
@@ -9332,7 +9332,7 @@ Frame: Frame 1
 -0.04028724 -0.2301973 0.00512092 -0.9722962
 -0.02173814 -0.3359812 -0.03913476 -0.9408042
 0 0 0 1
-0
+10
 endframe
 beginframe
 Frame: Frame 2
